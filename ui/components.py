@@ -922,6 +922,7 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
             "🪙 Forex & Metals Signals",
             "🏛️ Board of High",
             "📊 Live Trades & Statistics",
+            "🛡️ Trade Risk & Side-Evaluation",
             "🌊 Liquidity Heatmap",
             "📜 Pine Script v5",
             "📈 FX & Metals Live Chart",
@@ -934,6 +935,7 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
         tabs = [
             "📡 Live Signals & Tracking",
             "📊 Live Trades & Statistics",
+            "🛡️ Trade Risk & Side-Evaluation",
             "🌊 Liquidity Heatmap",
             "📜 Pine Script v5",
             "🌐 Universal Crypto Engine",

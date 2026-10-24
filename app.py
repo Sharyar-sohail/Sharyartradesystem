@@ -9,8 +9,15 @@ Features:
 - Historical Trade Search Engine, Multi-Strategy Walk-Forward Backtester & SL Minimizer
 """
 
-import time
 import os
+import sys
+
+# Ensure root directory is always prioritized in sys.path
+_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
+import time
 import json
 from datetime import datetime, timezone
 import pandas as pd
@@ -388,9 +395,14 @@ def render_unified_live_trades_and_statistics(default_arena: str = "crypto"):
             pnl_usd = (pnl_pct / 100.0) * pos.get("allocated", 100.0)
             opened_at = pos.get("entry_time", "-")
             
+            # Real-time Right Side vs Wrong Side evaluation
+            is_right = (side == "LONG" and cur_p >= entry_p * 0.996) or (side == "SHORT" and cur_p <= entry_p * 1.004)
+            side_alignment = "🟢 RIGHT SIDE" if is_right else "🔴 WRONG SIDE"
+            
             pos_rows.append({
                 "Symbol": sym,
                 "Side": "🟢 LONG" if side == "LONG" else "🔴 SHORT",
+                "Market Structure": side_alignment,
                 "Strategy": pos.get("strategy", "AI Core"),
                 "Entry Price": f"${entry_p:,.4f}" if entry_p < 10 else f"${entry_p:,.2f}",
                 "Mark Price": f"${cur_p:,.4f}" if cur_p < 10 else f"${cur_p:,.2f}",
@@ -704,6 +716,85 @@ def render_pinescript_generator_dashboard(trading_lane: str = "crypto"):
     with d_col2:
         st.info("💡 **How to Use in TradingView:** Open the **Pine Editor** at the bottom of TradingView, paste this code, and click **'Add to chart'** to visualize market structure markers, Order Blocks, and alerts!")
 
+def render_trade_risk_and_side_evaluation_dashboard(trading_lane: str = "crypto"):
+    """
+    Renders the Institutional Trade Risk Management & Side-Evaluation System.
+    Calculates and explicitly outputs whether an active or proposed trade is on the
+    'Right Side' or 'Wrong Side' of the market structure, offering relief exit points and optimal SL/TP.
+    """
+    st.markdown("### 🛡️ **Trade Risk Management & Side-Evaluation Engine**")
+    st.caption("Institutions never fight market structure. Input active positions to evaluate momentum alignment ('Right Side' vs 'Wrong Side'), calculate relief exits, and recalculate dynamic SL/TP targets.")
+
+    default_sym = "BTC/USDT" if trading_lane == "crypto" else "XAU/USD"
+    r_col1, r_col2, r_col3 = st.columns([1.5, 1.0, 1.2])
+    with r_col1:
+        eval_sym = st.text_input("Asset / Pair Symbol", value=default_sym, key=f"risk_eval_sym_{trading_lane}")
+    with r_col2:
+        eval_side = st.selectbox("Position Side", ["LONG (Buy)", "SHORT (Sell)"], key=f"risk_eval_side_{trading_lane}")
+    with r_col3:
+        clean_s = clean_symbol(eval_sym.strip().upper())
+        live_p = get_live_market_price(clean_s) or 100.0
+        eval_entry = st.number_input("Entry Price ($)", value=float(live_p), step=0.1, key=f"risk_eval_entry_{trading_lane}")
+
+    p_col1, p_col2 = st.columns([1.5, 1.5])
+    with p_col1:
+        eval_sl = st.number_input("Current Stop Loss ($ - Optional)", value=float(round(eval_entry * 0.98 if "LONG" in eval_side else eval_entry * 1.02, 2)), step=0.1, key=f"risk_eval_sl_{trading_lane}")
+    with p_col2:
+        eval_size = st.number_input("Position Size ($ USD)", value=100.0, step=10.0, key=f"risk_eval_size_{trading_lane}")
+
+    if st.button("🚀 Evaluate Market Structure Alignment", type="primary", width="stretch", key=f"btn_run_risk_eval_{trading_lane}"):
+        with st.spinner(f"Evaluating {clean_s} across order blocks, EMAs, and momentum alignment..."):
+            is_long = "LONG" in eval_side
+            df_eval = fetch_ohlcv_universal(clean_s, timeframe="1h", limit=80)
+            res = analyze_manual_trade_risk(
+                symbol=clean_s,
+                direction="LONG" if is_long else "SHORT",
+                entry_price=eval_entry,
+                current_sl=eval_sl,
+                position_size_usd=eval_size,
+                df=df_eval
+            )
+
+            if res:
+                badge = res.get("momentum_badge", "🟢 RIGHT SIDE")
+                is_right = "RIGHT" in badge
+                banner_color = "#00e699" if is_right else "#ff4d6d"
+
+                st.markdown(
+                    f"<div style='background:rgba(15,23,42,0.95); border:2px solid {banner_color}; border-radius:12px; padding:16px 20px; margin:14px 0;'>"
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;'>"
+                    f"<div><span style='font-size:1.4rem; font-weight:900; color:{banner_color};'>{badge} OF MARKET STRUCTURE</span></div>"
+                    f"<div style='font-size:0.9rem; color:#94a3b8;'>Status: <strong style='color:#ffffff;'>{res.get('risk_label', 'Active Evaluation')}</strong></div>"
+                    f"</div>"
+                    f"<p style='margin-top:10px; font-size:0.95rem; color:#e2e8f0; line-height:1.5;'>{res.get('momentum_explanation', '')}</p>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+                rk1, rk2, rk3, rk4 = st.columns(4)
+                with rk1:
+                    render_metric_card("CURRENT MARK", f"${res.get('current_price', live_p):,.4f}" if live_p < 10 else f"${res.get('current_price', live_p):,.2f}", "Live Exchange Mark", "text-cyan")
+                with rk2:
+                    pnl_u = res.get("pnl_usd", 0.0)
+                    render_metric_card("ESTIMATED PnL", f"{'+' if pnl_u>=0 else ''}${pnl_u:,.2f}", f"{res.get('pnl_pct', 0.0):+.2f}% ROI", "text-green" if pnl_u>=0 else "text-red")
+                with rk3:
+                    render_metric_card("SUGGESTED HARD SL", f"${res.get('suggested_sl', 0):,.4f}" if live_p < 10 else f"${res.get('suggested_sl', 0):,.2f}", "Dynamic ATR Protection", "text-red")
+                with rk4:
+                    render_metric_card("RECALCULATED TP1", f"${res.get('suggested_tp1', 0):,.4f}" if live_p < 10 else f"${res.get('suggested_tp1', 0):,.2f}", "1:2 R:R Milestone", "text-green")
+
+                st.divider()
+
+                # Actionable Relief Exit Advice
+                st.markdown("#### 🎯 **Actionable Structural Guidance & Loss-Mitigation Protocol**")
+                st.info(f"💡 **Optimal Relief Exit Level:** `{res.get('optimal_relief_exit', 'Breakeven Corridor')}` — If trapped in a counter-trend move, look for pullbacks into this zone to mitigate losses.")
+                
+                rec_actions = res.get("recommended_actions", [])
+                if rec_actions:
+                    for act in rec_actions:
+                        st.markdown(f"- {act}")
+            else:
+                st.warning(f"Could not load sufficient market data to evaluate {clean_s}.")
+
 # =====================================================================
 # LANE 1: CRYPTO QUANTITATIVE TRADER MODULES
 # =====================================================================
@@ -910,6 +1001,12 @@ if trading_lane == "crypto":
     # -----------------------------------------------------------------
     elif app_mode == "📊 Live Trades & Statistics" or "Statistics" in str(app_mode) or "Trades" in str(app_mode) or "Auto-Trading" in str(app_mode) or "Demo" in str(app_mode):
         render_unified_live_trades_and_statistics(default_arena="crypto")
+
+    # -----------------------------------------------------------------
+    # TAB: TRADE RISK & SIDE EVALUATION
+    # -----------------------------------------------------------------
+    elif app_mode == "🛡️ Trade Risk & Side-Evaluation" or "Risk" in str(app_mode) or "Side" in str(app_mode):
+        render_trade_risk_and_side_evaluation_dashboard(trading_lane="crypto")
 
     # -----------------------------------------------------------------
     # TAB: COINGLASS-STYLE LIQUIDITY HEATMAP
@@ -1697,6 +1794,12 @@ elif trading_lane in ["forex_metals", "metals"]:
     # -----------------------------------------------------------------
     elif app_mode == "📊 Live Trades & Statistics" or "Statistics" in str(app_mode) or "Trades" in str(app_mode) or "Metals Demo" in str(app_mode) or "Auto-Trading" in str(app_mode) or "Demo" in str(app_mode):
         render_unified_live_trades_and_statistics(default_arena="forex")
+
+    # -----------------------------------------------------------------
+    # TAB: TRADE RISK & SIDE EVALUATION
+    # -----------------------------------------------------------------
+    elif app_mode == "🛡️ Trade Risk & Side-Evaluation" or "Risk" in str(app_mode) or "Side" in str(app_mode):
+        render_trade_risk_and_side_evaluation_dashboard(trading_lane="forex")
 
     # -----------------------------------------------------------------
     # TAB: COINGLASS-STYLE LIQUIDITY HEATMAP

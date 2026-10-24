@@ -110,6 +110,8 @@ class MegaPumpScanner:
     """
 
     def __init__(self):
+        self.name = "Mega Pump 50%-500% ROI Coin Scanner"
+        self.strategy_name = "Mega Pump 50%-500% ROI Coin Scanner"
         self.min_gain_potential = 50.0
 
     def evaluate_symbol_for_mega_potential(self, symbol: str, df: pd.DataFrame) -> Optional[Dict[str, Any]]:

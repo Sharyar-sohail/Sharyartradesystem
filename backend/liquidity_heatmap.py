@@ -10,11 +10,39 @@ import pandas as pd
 import plotly.graph_objects as go
 from typing import Dict, Any, List, Optional, Tuple
 
-def generate_liquidity_heatmap_model(symbol: str, current_price: float, high_24h: Optional[float] = None, low_24h: Optional[float] = None) -> Dict[str, Any]:
+def generate_liquidity_heatmap_model(*args, **kwargs) -> Dict[str, Any]:
     """
     Computes CoinGlass-style liquidation pool clusters across leverage tiers:
     100x, 50x, 25x, 10x for both Long and Short positions.
+    Supports flexible arguments: (symbol, price) or (df, price).
     """
+    symbol = "BTC/USDT"
+    current_price = 100.0
+    high_24h = kwargs.get("high_24h", None)
+    low_24h = kwargs.get("low_24h", None)
+
+    if len(args) >= 1:
+        first = args[0]
+        if isinstance(first, str):
+            symbol = first
+            if len(args) >= 2 and isinstance(args[1], (int, float)):
+                current_price = float(args[1])
+        elif isinstance(first, pd.DataFrame):
+            if "symbol" in kwargs:
+                symbol = str(kwargs["symbol"])
+            elif len(args) >= 3 and isinstance(args[2], str):
+                symbol = args[2]
+            if len(args) >= 2 and isinstance(args[1], (int, float)):
+                current_price = float(args[1])
+            elif not first.empty and "close" in first.columns:
+                current_price = float(first["close"].iloc[-1])
+                high_24h = float(first["high"].max())
+                low_24h = float(first["low"].min())
+    if "current_price" in kwargs:
+        current_price = float(kwargs["current_price"])
+    if "symbol" in kwargs:
+        symbol = str(kwargs["symbol"])
+
     p = float(current_price)
     h24 = float(high_24h) if (high_24h and high_24h > p) else p * 1.035
     l24 = float(low_24h) if (low_24h and low_24h < p) else p * 0.965
@@ -70,6 +98,13 @@ def generate_liquidity_heatmap_model(symbol: str, current_price: float, high_24h
     top_upper_magnet = max([c for c in clusters if c["type"] == "SHORT_LIQUIDATION"], key=lambda x: x["estimated_pool_m"])
     top_lower_magnet = max([c for c in clusters if c["type"] == "LONG_LIQUIDATION"], key=lambda x: x["estimated_pool_m"])
 
+    summary = {
+        "total_pool_volume_usd": round((total_long_liq_usd + total_short_liq_usd) * 1_000_000, 2),
+        "total_long_liq_usd_m": round(total_long_liq_usd, 1),
+        "total_short_liq_usd_m": round(total_short_liq_usd, 1),
+        "net_skew": "SHORT SQUEEZE BIAS" if total_short_liq_usd > total_long_liq_usd else "LONG FLUSH BIAS"
+    }
+
     return {
         "symbol": symbol,
         "current_price": p,
@@ -78,14 +113,25 @@ def generate_liquidity_heatmap_model(symbol: str, current_price: float, high_24h
         "net_skew": "SHORT SQUEEZE BIAS" if total_short_liq_usd > total_long_liq_usd else "LONG FLUSH BIAS",
         "top_upper_magnet": top_upper_magnet,
         "top_lower_magnet": top_lower_magnet,
+        "summary": summary,
         "clusters": clusters
     }
 
-def build_coinglass_liquidity_heatmap_chart(heatmap_data: Dict[str, Any]) -> go.Figure:
+def build_coinglass_liquidity_heatmap_chart(*args, **kwargs) -> go.Figure:
     """
     Renders an institutional CoinGlass-style Liquidity Density Heatmap using Plotly.
     Plots price levels vs estimated liquidation leverage volume with a glowing cyber palette.
+    Accepts (heatmap_data) or (df, heatmap_data, symbol=...).
     """
+    heatmap_data = {}
+    for a in args:
+        if isinstance(a, dict) and "clusters" in a:
+            heatmap_data = a
+            break
+    if not heatmap_data and "heatmap_data" in kwargs:
+        heatmap_data = kwargs["heatmap_data"]
+    elif not heatmap_data and len(args) == 1 and isinstance(args[0], dict):
+        heatmap_data = args[0]
     clusters = heatmap_data.get("clusters", [])
     cur_p = heatmap_data.get("current_price", 100.0)
     symbol = heatmap_data.get("symbol", "BTC/USDT")

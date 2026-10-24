@@ -187,11 +187,14 @@ def analyze_market_structure(df: pd.DataFrame, swing_lookback: int = 5) -> Dict[
 
     return {
         "trend": current_trend,
+        "structure": structure_bias,
         "structure_bias": structure_bias,
         "swing_high": recent_sh,
         "swing_low": recent_sl,
         "equilibrium": round(equilibrium, 4) if equilibrium < 10 else round(equilibrium, 2),
         "zone": zone,
+        "is_discount": (zone == "DISCOUNT"),
+        "is_ote": bool(ote_low <= latest_price <= ote_high) if ote_low > 0 else False,
         "ote_zone": (round(ote_low, 4) if ote_low < 10 else round(ote_low, 2), round(ote_high, 4) if ote_high < 10 else round(ote_high, 2)),
         "bos_events": bos_events,
         "choch_events": choch_events,

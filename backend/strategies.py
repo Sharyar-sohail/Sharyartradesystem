@@ -1375,8 +1375,17 @@ def analyze_manual_trade_risk(
     current_sl: Optional[float] = None,
     current_tp: Optional[float] = None,
     position_size_usd: float = 1.0,
-    df: Optional[pd.DataFrame] = None
+    df: Optional[pd.DataFrame] = None,
+    **kwargs
 ) -> Dict[str, Any]:
+    # Support alternate kwarg names for maximum API flexibility
+    if current_sl is None and 'stop_loss' in kwargs:
+        current_sl = float(kwargs['stop_loss'])
+    if current_tp is None and 'take_profit' in kwargs:
+        current_tp = float(kwargs['take_profit'])
+    account_balance = float(kwargs.get('account_balance', 10000.0))
+    risk_pct_val = float(kwargs.get('risk_pct', 1.5))
+    calc_risk_usd = round(account_balance * (risk_pct_val / 100.0), 2)
     if df is None or len(df) < 20:
         try:
             from backend.binance_client import binance_client
@@ -1700,6 +1709,10 @@ def analyze_manual_trade_risk(
         "user_potential_profit_usd": round(user_profit_usd, 2),
         "user_potential_profit_pct": round(user_profit_pct, 2),
         "user_rr_ratio": user_rr_ratio,
+        "side_status": "RIGHT SIDE OF MARKET" if momentum_side == "RIGHT_SIDE" else "WRONG SIDE OF MARKET",
+        "alignment_score": round((bull_count / float(total_strats)) * 100.0, 1) if is_long else round((bear_count / float(total_strats)) * 100.0, 1),
+        "rr_ratio": round(abs(current_tp - entry_price) / max(abs(entry_price - current_sl), 1e-4), 2) if (current_sl is not None and current_tp is not None) else 3.0,
+        "risk_amount_usd": calc_risk_usd,
         "confluence_score": conf_score,
         "confluence_direction": conf_dir,
         "strategy_confluence": strat_confluence,

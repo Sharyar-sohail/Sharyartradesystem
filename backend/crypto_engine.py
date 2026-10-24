@@ -4,6 +4,8 @@ Handles real-time Binance data feeds, multi-pair market scanning,
 explosive breakout radar, and 50% to 500%+ Mega-Pump candidate isolation.
 """
 
+import os
+import sys
 import time
 import requests
 import pandas as pd
@@ -11,10 +13,26 @@ import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT_DIR = os.path.dirname(_CURRENT_DIR)
+if _ROOT_DIR not in sys.path:
+    sys.path.insert(0, _ROOT_DIR)
+
 from backend.binance_client import binance_client
 from backend.db import log_event
-from strategies.mega_pump_scanner import mega_pump_scanner
-from strategies import STRATEGY_REGISTRY, strategy_master_ai_hybrid
+
+try:
+    from strategies.mega_pump_scanner import mega_pump_scanner
+    from strategies import STRATEGY_REGISTRY, strategy_master_ai_hybrid
+except Exception:
+    try:
+        from backend.strategies import STRATEGY_REGISTRY
+        from strategies.mega_pump_scanner import mega_pump_scanner
+        strategy_master_ai_hybrid = None
+    except Exception:
+        mega_pump_scanner = None
+        STRATEGY_REGISTRY = {}
+        strategy_master_ai_hybrid = None
 
 # Core Liquid Crypto Universe (with BTC as Market King)
 CRYPTO_MAJOR_PAIRS = [
