@@ -662,9 +662,3 @@ class AutonomousAILearningEngine:
         }
 
 autonomous_learning_engine = AutonomousAILearningEngine()
-
-# Automatically start background continuous learning daemon
-try:
-    autonomous_learning_engine.start()
-except Exception:
-    pass

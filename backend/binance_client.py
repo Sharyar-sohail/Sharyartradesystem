@@ -9,7 +9,10 @@ import requests
 import pandas as pd
 import numpy as np
 from typing import Tuple, List, Dict, Any, Optional
-import ccxt
+try:
+    import ccxt
+except ImportError:
+    ccxt = None
 
 from backend.config import BINANCE_BASE_URLS, BINANCE_API_KEY, BINANCE_API_SECRET
 from backend.db import log_event

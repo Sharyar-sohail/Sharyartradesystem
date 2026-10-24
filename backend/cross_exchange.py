@@ -11,7 +11,10 @@ import time
 import threading
 import requests
 from typing import List, Dict, Any, Optional
-import ccxt
+try:
+    import ccxt
+except ImportError:
+    ccxt = None
 
 from backend.db import log_event
 from backend.strategies import compute_ema, compute_rsi, compute_atr

@@ -14,9 +14,72 @@ import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
-import yfinance as yf
+try:
+    import yfinance as yf
+except Exception:
+    yf = None
+
 from backend.db import log_event
 from backend.binance_client import binance_client
+
+__all__ = [
+    "get_live_metal_price",
+    "get_live_forex_price",
+    "get_live_market_price",
+    "get_forex_and_metals_signals",
+    "FOREX_MAJOR_PAIRS",
+    "fetch_ohlcv_universal",
+    "fetch_inception_history",
+    "clean_symbol",
+    "YFINANCE_MAP"
+]
+
+def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str = "5d") -> Tuple[Optional[float], Optional[pd.DataFrame]]:
+    """Direct REST query to Yahoo Finance chart API with zero external library dependencies."""
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_sym}?interval={interval}&range={range_str}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        res = requests.get(url, headers=headers, timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            result = data.get("chart", {}).get("result", [{}])[0]
+            meta = result.get("meta", {})
+            last_price = meta.get("regularMarketPrice")
+            
+            timestamps = result.get("timestamp", [])
+            indicators = result.get("indicators", {}).get("quote", [{}])[0]
+            opens = indicators.get("open", [])
+            highs = indicators.get("high", [])
+            lows = indicators.get("low", [])
+            closes = indicators.get("close", [])
+            volumes = indicators.get("volume", [])
+            
+            df = None
+            if timestamps and closes:
+                rows = []
+                for idx_ts, ts in enumerate(timestamps):
+                    c = closes[idx_ts]
+                    if c is not None:
+                        o = opens[idx_ts] if idx_ts < len(opens) and opens[idx_ts] is not None else c
+                        h = highs[idx_ts] if idx_ts < len(highs) and highs[idx_ts] is not None else c
+                        l = lows[idx_ts] if idx_ts < len(lows) and lows[idx_ts] is not None else c
+                        v = volumes[idx_ts] if idx_ts < len(volumes) and volumes[idx_ts] is not None else 1000.0
+                        rows.append({
+                            "timestamp": int(ts) * 1000,
+                            "open": float(o),
+                            "high": float(h),
+                            "low": float(l),
+                            "close": float(c),
+                            "volume": float(v)
+                        })
+                if rows:
+                    df = pd.DataFrame(rows)
+            return last_price, df
+    except Exception:
+        pass
+    return None, None
 
 HISTORICAL_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "historical")
 os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
@@ -105,24 +168,34 @@ def get_live_forex_price(symbol: str) -> float:
         base, quote = sym.split("/") if "/" in sym else (sym[:3], sym[3:])
         yf_sym = f"{base}{quote}=X"
     
-    try:
-        t = yf.Ticker(yf_sym)
-        fast_info = getattr(t, "fast_info", None)
-        if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
-            p = float(fast_info.last_price)
-            if p > 0:
-                digits = 2 if "JPY" in sym else (3 if "XAG" in sym else (2 if "XAU" in sym else 5))
-                return round(p, digits)
-        hist = t.history(period="1d")
-        if len(hist) > 0 and "Close" in hist:
-            p = float(hist["Close"].iloc[-1])
-            if p > 0:
-                digits = 2 if "JPY" in sym else (3 if "XAG" in sym else (2 if "XAU" in sym else 5))
-                return round(p, digits)
-    except Exception as e:
-        log_event("DEBUG", "MARKET_HUB", f"Forex quote notice for {sym}: {e}")
+    digits = 2 if "JPY" in sym else (3 if "XAG" in sym else (2 if "XAU" in sym else 5))
 
-    # Standard reference fallbacks
+    # 1. Try yfinance if installed
+    if yf is not None:
+        try:
+            t = yf.Ticker(yf_sym)
+            fast_info = getattr(t, "fast_info", None)
+            if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
+                p = float(fast_info.last_price)
+                if p > 0:
+                    return round(p, digits)
+            hist = t.history(period="1d")
+            if len(hist) > 0 and "Close" in hist:
+                p = float(hist["Close"].iloc[-1])
+                if p > 0:
+                    return round(p, digits)
+        except Exception:
+            pass
+
+    # 2. Try Direct Yahoo Finance REST Query
+    try:
+        rest_p, _ = _fetch_yahoo_direct_rest(yf_sym, interval="1h", range_str="1d")
+        if rest_p and rest_p > 0:
+            return round(float(rest_p), digits)
+    except Exception:
+        pass
+
+    # 3. Standard reference fallbacks
     fallbacks = {
         "EUR/USD": 1.1205, "GBP/USD": 1.3375, "USD/JPY": 156.80,
         "USD/CHF": 0.8240, "AUD/USD": 0.7040, "USD/CAD": 1.4005,
@@ -157,32 +230,40 @@ def get_live_metal_price(symbol: str) -> float:
     """
     Retrieves real-time price for precious metals with multi-source fallback:
     1. Yahoo Finance (GC=F for Gold, SI=F for Silver)
-    2. Binance PAXG/USDT for Gold
-    3. Public Commodities FastQuote API
-    4. Conservative default fallback
+    2. Direct Yahoo REST Query
+    3. Binance PAXG/USDT for Gold
+    4. Public Commodities FastQuote API
+    5. Conservative default fallback
     """
     sym = clean_symbol(symbol)
-    
-    # 1. Yahoo Finance
-    try:
-        yf_ticker = "GC=F" if "XAU" in sym or "GOLD" in sym else "SI=F"
-        t = yf.Ticker(yf_ticker)
-        fast_info = getattr(t, "fast_info", None)
-        if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
-            p = float(fast_info.last_price)
-            if p > 0:
-                return round(p, 2)
-        
-        # Fallback to history 1d
-        hist = t.history(period="1d")
-        if len(hist) > 0 and "Close" in hist:
-            p = float(hist["Close"].iloc[-1])
-            if p > 0:
-                return round(p, 2)
-    except Exception as e:
-        log_event("DEBUG", "MARKET_HUB", f"Yahoo Finance metal fetch notice for {sym}: {e}")
+    yf_ticker = "GC=F" if "XAU" in sym or "GOLD" in sym else "SI=F"
 
-    # 2. Binance PAXG for Gold
+    # 1. Try yfinance if installed
+    if yf is not None:
+        try:
+            t = yf.Ticker(yf_ticker)
+            fast_info = getattr(t, "fast_info", None)
+            if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
+                p = float(fast_info.last_price)
+                if p > 0:
+                    return round(p, 2)
+            hist = t.history(period="1d")
+            if len(hist) > 0 and "Close" in hist:
+                p = float(hist["Close"].iloc[-1])
+                if p > 0:
+                    return round(p, 2)
+        except Exception:
+            pass
+
+    # 2. Direct Yahoo Finance REST Query
+    try:
+        rest_p, _ = _fetch_yahoo_direct_rest(yf_ticker, interval="1h", range_str="1d")
+        if rest_p and rest_p > 0:
+            return round(float(rest_p), 2)
+    except Exception:
+        pass
+
+    # 3. Binance PAXG for Gold
     if "XAU" in sym or "GOLD" in sym or "PAXG" in sym:
         try:
             p = binance_client.get_ticker_price("PAXGUSDT")
@@ -191,7 +272,7 @@ def get_live_metal_price(symbol: str) -> float:
         except Exception:
             pass
 
-    # 3. Public REST Fallback for Gold / Silver
+    # 4. Public REST Fallback for Gold / Silver
     try:
         url = "https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,tether-gold&vs_currencies=usd"
         res = requests.get(url, timeout=4).json()
@@ -201,11 +282,11 @@ def get_live_metal_price(symbol: str) -> float:
                 return round(float(p), 2)
         elif "XAG" in sym or "SILVER" in sym:
             gold_p = res.get("pax-gold", {}).get("usd") or 4000.0
-            return round(gold_p / 74.5, 3) # Real-world Gold/Silver ratio
+            return round(gold_p / 74.5, 3)
     except Exception:
         pass
 
-    # 4. Safe Default
+    # 5. Safe Default
     return 4007.90 if ("XAU" in sym or "GOLD" in sym) else 53.70
 
 def fetch_ohlcv_universal(symbol: str, timeframe: str = "1h", limit: int = 300) -> pd.DataFrame:
@@ -241,45 +322,57 @@ def fetch_ohlcv_universal(symbol: str, timeframe: str = "1h", limit: int = 300) 
                 yf_sym = "SI=F"
             else:
                 yf_sym = sym
+        if yf is not None:
+            try:
+                interval_map = {"1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "1h", "1d": "1d", "1w": "1wk"}
+                yf_interval = interval_map.get(timeframe, "1h")
+                period = "5d" if yf_interval in ["1m", "5m"] else ("60d" if yf_interval in ["15m", "1h"] else "2y")
+                
+                ticker = yf.Ticker(yf_sym)
+                df = ticker.history(period=period, interval=yf_interval)
+                if df is not None and len(df) > 10:
+                    df = df.reset_index()
+                    rename_cols = {}
+                    for c in df.columns:
+                        clow = str(c).lower()
+                        if "date" in clow or "time" in clow:
+                            rename_cols[c] = "timestamp"
+                        elif clow == "open":
+                            rename_cols[c] = "open"
+                        elif clow == "high":
+                            rename_cols[c] = "high"
+                        elif clow == "low":
+                            rename_cols[c] = "low"
+                        elif clow == "close":
+                            rename_cols[c] = "close"
+                        elif clow == "volume":
+                            rename_cols[c] = "volume"
+                    df = df.rename(columns=rename_cols)
+                    if "timestamp" in df.columns:
+                        df["timestamp"] = pd.to_datetime(df["timestamp"]).astype(int) // 10**6
+                    else:
+                        df["timestamp"] = (time.time() - (len(df) - df.index) * 3600) * 1000
+                    
+                    req_cols = ["timestamp", "open", "high", "low", "close", "volume"]
+                    for c in req_cols:
+                        if c not in df.columns:
+                            df[c] = 0.0
+                    df = df[req_cols].dropna().tail(limit).reset_index(drop=True)
+                    if len(df) >= 15:
+                        return df
+            except Exception as e:
+                log_event("WARNING", "MARKET_HUB", f"YFinance OHLCV notice for {sym}: {e}")
+
+        # Fallback to direct Yahoo REST query
         try:
             interval_map = {"1m": "1m", "5m": "5m", "15m": "15m", "1h": "1h", "4h": "1h", "1d": "1d", "1w": "1wk"}
             yf_interval = interval_map.get(timeframe, "1h")
             period = "5d" if yf_interval in ["1m", "5m"] else ("60d" if yf_interval in ["15m", "1h"] else "2y")
-            
-            ticker = yf.Ticker(yf_sym)
-            df = ticker.history(period=period, interval=yf_interval)
-            if df is not None and len(df) > 10:
-                df = df.reset_index()
-                rename_cols = {}
-                for c in df.columns:
-                    clow = str(c).lower()
-                    if "date" in clow or "time" in clow:
-                        rename_cols[c] = "timestamp"
-                    elif clow == "open":
-                        rename_cols[c] = "open"
-                    elif clow == "high":
-                        rename_cols[c] = "high"
-                    elif clow == "low":
-                        rename_cols[c] = "low"
-                    elif clow == "close":
-                        rename_cols[c] = "close"
-                    elif clow == "volume":
-                        rename_cols[c] = "volume"
-                df = df.rename(columns=rename_cols)
-                if "timestamp" in df.columns:
-                    df["timestamp"] = pd.to_datetime(df["timestamp"]).astype(int) // 10**6
-                else:
-                    df["timestamp"] = (time.time() - (len(df) - df.index) * 3600) * 1000
-                
-                req_cols = ["timestamp", "open", "high", "low", "close", "volume"]
-                for c in req_cols:
-                    if c not in df.columns:
-                        df[c] = 0.0
-                df = df[req_cols].dropna().tail(limit).reset_index(drop=True)
-                if len(df) >= 15:
-                    return df
-        except Exception as e:
-            log_event("WARNING", "MARKET_HUB", f"YFinance OHLCV notice for {sym}: {e}")
+            _, df_rest = _fetch_yahoo_direct_rest(yf_sym, interval=yf_interval, range_str=period)
+            if df_rest is not None and len(df_rest) >= 15:
+                return df_rest.tail(limit).reset_index(drop=True)
+        except Exception:
+            pass
 
     # 2. Binance Direct Route (Primary for Crypto)
     bin_sym = sym.replace("/", "")
@@ -406,32 +499,33 @@ def fetch_inception_history(asset: str = "BTC") -> pd.DataFrame:
 
     # Mine from Yahoo Finance
     yf_symbol = "BTC-USD" if asset in ["BTC", "BITCOIN", "BTC/USDT"] else "GC=F"
-    try:
-        t = yf.Ticker(yf_symbol)
-        df = t.history(period="max", interval="1d")
-        if df is not None and len(df) > 150:
-            df = df.reset_index()
-            cols = {c: str(c).lower() for c in df.columns}
-            df = df.rename(columns=cols)
-            if "datetime" in df.columns:
-                df["date"] = pd.to_datetime(df["datetime"]).dt.strftime("%Y-%m-%d")
-            elif "date" in df.columns:
-                df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-            
-            req_cols = ["date", "open", "high", "low", "close", "volume"]
-            for c in req_cols:
-                if c not in df.columns:
-                    df[c] = 0.0
-            df = df[req_cols].dropna().reset_index(drop=True)
-            
-            # Save to parquet cache
-            try:
-                df.to_parquet(cache_path, index=False)
-            except Exception:
-                pass
-            return df
-    except Exception as e:
-        log_event("WARNING", "MARKET_HUB", f"Inception mining error for {asset}: {e}")
+    if yf is not None:
+        try:
+            t = yf.Ticker(yf_symbol)
+            df = t.history(period="max", interval="1d")
+            if df is not None and len(df) > 150:
+                df = df.reset_index()
+                cols = {c: str(c).lower() for c in df.columns}
+                df = df.rename(columns=cols)
+                if "datetime" in df.columns:
+                    df["date"] = pd.to_datetime(df["datetime"]).dt.strftime("%Y-%m-%d")
+                elif "date" in df.columns:
+                    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+                
+                req_cols = ["date", "open", "high", "low", "close", "volume"]
+                for c in req_cols:
+                    if c not in df.columns:
+                        df[c] = 0.0
+                df = df[req_cols].dropna().reset_index(drop=True)
+                
+                # Save to parquet cache
+                try:
+                    df.to_parquet(cache_path, index=False)
+                except Exception:
+                    pass
+                return df
+        except Exception as e:
+            log_event("WARNING", "MARKET_HUB", f"Inception mining error for {asset}: {e}")
 
     # High-Fidelity Historical Inception Synthesis Fallback
     return generate_inception_synthesized_data(asset)

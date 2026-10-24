@@ -658,9 +658,3 @@ class ContinuousMarketScanner:
 
 # Singleton background runner & scanner instance
 trading_runner = ContinuousMarketScanner()
-
-# Automatically start background worker so it scans continuously out of the box
-try:
-    trading_runner.start()
-except Exception:
-    pass
