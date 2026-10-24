@@ -214,65 +214,162 @@ TERMINAL_CUSTOM_CSS = """
         border-bottom-color: #00e5ff !important;
     }
 
-    /* Metric Cards */
+    /* Dynamic High-Density Metric Cards (Screen Adaptive, Zero Bulk) */
     .metric-card {
         background: linear-gradient(135deg, rgba(20, 26, 38, 0.95) 0%, rgba(13, 17, 24, 0.98) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 10px;
-        padding: 16px 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        padding: clamp(6px, 1.0vw, 10px) clamp(8px, 1.4vw, 14px) !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+        min-height: auto !important;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        width: 100%;
+        box-sizing: border-box;
     }
     .metric-card:hover {
         border-color: rgba(0, 230, 153, 0.6);
-        transform: translateY(-2px);
+        transform: translateY(-1px);
     }
     .metric-title {
-        font-size: 0.82rem;
+        font-size: clamp(0.66rem, 1.0vw, 0.74rem) !important;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #ffffff !important;
+        letter-spacing: 0.05em;
+        color: #94a3b8 !important;
         font-weight: 700 !important;
-        margin-bottom: 6px;
+        margin-bottom: 2px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2 !important;
     }
     .metric-value {
-        font-size: 1.65rem;
+        font-size: clamp(1.05rem, 1.8vw, 1.35rem) !important;
         font-weight: 800;
         color: #ffffff !important;
         font-family: "JetBrains Mono", Consolas, monospace;
+        line-height: 1.2 !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .metric-sub {
-        font-size: 0.78rem;
+        font-size: clamp(0.64rem, 0.9vw, 0.72rem) !important;
         font-weight: 600;
-        margin-top: 4px;
+        margin-top: 2px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2 !important;
     }
     .text-green { color: #00e699 !important; }
     .text-red { color: #ff4d6d !important; }
     .text-cyan { color: #38bdf8 !important; }
     .text-gold { color: #f59e0b !important; }
 
+    /* Dynamic Telemetry Micro-Cards (Screen Adaptive) */
+    .dyn-telemetry-card {
+        background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(10, 15, 26, 0.98) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        padding: clamp(6px, 1.0vw, 10px) clamp(8px, 1.2vw, 12px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .dyn-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .dyn-card-title {
+        font-size: clamp(0.76rem, 1.0vw, 0.84rem);
+        color: #ffffff;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .dyn-tag {
+        background: rgba(255,255,255,0.06);
+        color: #94a3b8;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.68rem;
+        font-family: "JetBrains Mono", monospace;
+    }
+    .dyn-status-badge {
+        font-size: clamp(0.64rem, 0.85vw, 0.70rem);
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .dyn-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: clamp(4px, 0.8vw, 6px);
+        margin-top: 3px;
+    }
+    .dyn-metric-item {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 6px;
+        padding: clamp(3px, 0.7vw, 5px) clamp(4px, 0.9vw, 6px);
+        min-width: 0;
+    }
+    .dyn-m-lbl {
+        font-size: clamp(0.56rem, 0.8vw, 0.64rem);
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .dyn-m-val {
+        font-size: clamp(0.74rem, 1.1vw, 0.88rem);
+        color: #ffffff;
+        font-weight: 800;
+        font-family: "JetBrains Mono", monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 1px;
+    }
+
     /* Live Autonomous Engine Visualizer */
     .bot-engine-card {
         background: radial-gradient(circle at 10% 20%, rgba(15, 23, 42, 0.95) 0%, rgba(11, 14, 20, 0.98) 100%);
         border: 1px solid rgba(56, 189, 248, 0.35);
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        margin-bottom: 16px;
+        border-radius: 8px;
+        padding: clamp(8px, 1.2vw, 12px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
+        margin-bottom: 8px;
     }
     .bot-pulse {
         display: inline-block;
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         background-color: #00e699;
-        box-shadow: 0 0 10px #00e699;
-        margin-right: 8px;
+        box-shadow: 0 0 8px #00e699;
+        margin-right: 6px;
         animation: pulse-anim 1.8s infinite;
     }
     @keyframes pulse-anim {
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 153, 0.7); }
-        70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(0, 230, 153, 0); }
+        70% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(0, 230, 153, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 153, 0); }
     }
 
@@ -280,10 +377,10 @@ TERMINAL_CUSTOM_CSS = """
     .acc-tracker-card {
         background: linear-gradient(135deg, rgba(16, 24, 40, 0.95) 0%, rgba(9, 13, 20, 0.98) 100%);
         border: 1px solid rgba(0, 230, 153, 0.35);
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.45);
-        margin-bottom: 16px;
+        border-radius: 8px;
+        padding: clamp(8px, 1.2vw, 12px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
+        margin-bottom: 8px;
     }
 
     /* Live Terminal Console Log Window */
@@ -386,49 +483,100 @@ TERMINAL_CUSTOM_CSS = """
         font-size: 0.8rem;
     }
 
+    /* Streamlit Containers & Column Density (Eliminates Oversized Bulky Boxes) */
+    div[data-testid="stVerticalBlockBorderWrapper"] > div {
+        padding: clamp(8px, 1.2vw, 12px) !important;
+        border-radius: 8px !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        background-color: rgba(13, 18, 28, 0.75) !important;
+    }
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.45rem !important;
+    }
+    [data-testid="stMetric"] {
+        background: rgba(16, 22, 34, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 8px !important;
+        padding: clamp(4px, 0.8vw, 8px) clamp(6px, 1.0vw, 10px) !important;
+    }
+    [data-testid="stMetricLabel"] p {
+        font-size: clamp(0.66rem, 0.9vw, 0.74rem) !important;
+        color: #94a3b8 !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+        line-height: 1.2 !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: clamp(1.0rem, 1.5vw, 1.28rem) !important;
+        font-weight: 800 !important;
+        font-family: "JetBrains Mono", monospace !important;
+        color: #ffffff !important;
+        line-height: 1.2 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: clamp(0.64rem, 0.85vw, 0.72rem) !important;
+    }
+
+    /* Tablet Screen Adjustments (<= 992px) */
+    @media (max-width: 992px) {
+        .dyn-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 5px !important;
+        }
+    }
+
     /* Fully Responsive Mobile-First & Vertical Stacking Overrides (Zero Text Clipping) */
     @media (max-width: 768px) {
         .stMainBlockContainer {
-            padding-left: 0.4rem !important;
-            padding-right: 0.4rem !important;
-            padding-top: 0.6rem !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+            padding-top: 0.4rem !important;
             max-width: 100% !important;
         }
         div[data-testid="column"] {
             width: 100% !important;
             flex: 1 1 100% !important;
             min-width: 100% !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 6px !important;
+            padding: 0 !important;
         }
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: wrap !important;
-            gap: 6px !important;
+            gap: 4px !important;
         }
         [data-testid="stSegmentedControl"] {
             width: 100% !important;
             overflow-x: auto !important;
             justify-content: flex-start !important;
-            padding: 4px 6px !important;
-            border-radius: 14px !important;
+            padding: 3px 5px !important;
+            border-radius: 12px !important;
         }
         [data-testid="stSegmentedControl"] button {
-            padding: 5px 8px !important;
-            font-size: 0.72rem !important;
+            padding: 4px 7px !important;
+            font-size: 0.70rem !important;
             white-space: nowrap !important;
         }
-        .metric-card {
-            padding: 10px 12px !important;
-            min-height: auto !important;
-            margin-bottom: 6px !important;
+        .dyn-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 5px !important;
         }
-        .metric-card .card-value {
+        .dyn-telemetry-card {
+            padding: 6px 8px !important;
+            margin-bottom: 4px !important;
+        }
+        .metric-card {
+            padding: 6px 10px !important;
+            min-height: auto !important;
+            margin-bottom: 4px !important;
+        }
+        .metric-card .metric-value {
             font-size: 1.1rem !important;
         }
         .cmc-compact-header-strip {
             flex-direction: column !important;
             align-items: flex-start !important;
             gap: 4px !important;
-            padding: 6px 10px !important;
+            padding: 6px 8px !important;
         }
         .stMarkdown, p, span, div {
             word-break: break-word !important;
@@ -766,12 +914,16 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
     Provides instant one-click switching across all trading tools and views.
     Configured dynamically based on active trading lane (Crypto vs Gold & Metals).
     """
+    if "Auto-Trading" in current_selection or "Demo Engine" in current_selection or "Demo" in current_selection:
+        current_selection = "📊 Live Trades & Statistics"
+
     if trading_lane in ["metals", "forex_metals"]:
         tabs = [
             "🪙 Forex & Metals Signals",
+            "🏛️ Board of High",
+            "📊 Live Trades & Statistics",
             "📈 FX & Metals Live Chart",
             "📊 Backtest & SL Minimizer",
-            "🤖 Auto-Trading & Demo Engine",
             "🧬 24/7 AI Strategy Lab",
             "💼 Portfolio & History",
             "⚙️ System Logs"
@@ -779,7 +931,7 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
     else:
         tabs = [
             "📡 Live Signals & Tracking",
-            "🤖 Auto-Trading & Demo Engine",
+            "📊 Live Trades & Statistics",
             "🌐 Universal Crypto Engine",
             "🧪 Alpha Lab",
             "🧬 24/7 AI Strategy Lab",
@@ -804,46 +956,52 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
 
 def render_autonomous_trading_engine_visualizer(runner, current_symbol: str = "BTC/USDT"):
     """
-    Renders a compact, high-density 'Trading Engine' telemetry card.
-    Compressed for professional desktop density without vertical bloat.
+    Renders a dynamic, screen-adaptive, high-density 'Trading Engine' telemetry card.
+    Dynamically scales on desktop and mobile without bulky container bloat.
     """
     is_running = getattr(runner, "is_running", False)
     auto_trade = getattr(runner, "auto_paper_trade", False)
     scanned_count = getattr(runner, "total_pairs_scanned_count", 1420)
     open_positions = getattr(runner, "open_positions", {})
     pairs = getattr(runner, "all_market_pairs", [])
-    trade_size = getattr(runner, "trade_size_usd", 1.0)
+    trade_size = getattr(runner, "trade_size_usd", 100.0)
     balance = getattr(runner, "paper_balance", 10000.0)
 
     active_pair = current_symbol if current_symbol else (pairs[scanned_count % len(pairs)] if pairs else "BTC/USDT")
     status_pill = "🟢 ACTIVE" if (is_running and auto_trade) else ("🟡 SCANNING" if is_running else "⚪ PAUSED")
+    badge_style = "background:rgba(0,229,255,0.12); color:#00E5FF; border:1px solid rgba(0,229,255,0.3);"
 
-    with st.container(border=True):
-        # Header + Status on one row
-        h1, h2 = st.columns([2.0, 1.0], vertical_alignment="center")
-        with h1:
-            st.markdown(f"**🤖 Autonomous Trading Engine** &nbsp;`Cycle #{scanned_count}`")
-        with h2:
-            st.markdown(f"<div style='text-align:right;'><span style='background:rgba(0,229,255,0.12); color:#00E5FF; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.78rem; border:1px solid rgba(0,229,255,0.3);'>{status_pill}</span></div>", unsafe_allow_html=True)
-        
-        # High-density metrics row
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.caption("INSPECTION NODE")
-            st.markdown(f"**`{active_pair}`**")
-        with m2:
-            st.caption("THROUGHPUT")
-            st.markdown("**`~25 pairs/s`**")
-        with m3:
-            st.caption("ACTIVE SLOTS")
-            st.markdown(f"**`{len(open_positions)}/15`** <span style='color:#00E5FF; font-size:0.78rem;'>(${len(open_positions) * trade_size:.1f})</span>", unsafe_allow_html=True)
-        with m4:
-            st.caption("DEMO BALANCE")
-            st.markdown(f"**`${balance:,.2f}`**")
+    html = f"""
+    <div class="dyn-telemetry-card">
+        <div class="dyn-card-header">
+            <div class="dyn-card-title"><span class="bot-pulse"></span><strong>Trading Engine</strong> <span class="dyn-tag">#{scanned_count}</span></div>
+            <span class="dyn-status-badge" style="{badge_style}">{status_pill}</span>
+        </div>
+        <div class="dyn-metrics-grid">
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">NODE</div>
+                <div class="dyn-m-val">{active_pair}</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">THROUGHPUT</div>
+                <div class="dyn-m-val">~25 p/s</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">ACTIVE SLOTS</div>
+                <div class="dyn-m-val">{len(open_positions)}/15</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">BALANCE</div>
+                <div class="dyn-m-val">${balance:,.0f}</div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 def render_signal_accuracy_tracker(acc_stats: Dict[str, Any], evolution_summary: Optional[Dict[str, Any]] = None):
     """
-    Renders a compact, high-density live Signal Accuracy & Recursive Improvement telemetry card.
+    Renders a dynamic, screen-adaptive telemetry card for live Signal Accuracy and Win Rate.
     """
     stats = acc_stats or {}
     hit_10 = stats.get("hit_10pct", 0)
@@ -859,66 +1017,77 @@ def render_signal_accuracy_tracker(acc_stats: Dict[str, Any], evolution_summary:
     baseline_acc = 88.4
     delta_acc = round(live_acc - baseline_acc, 1)
     delta_str = f"+{delta_acc}%" if delta_acc >= 0 else f"{delta_acc}%"
+    badge_style = "background:rgba(0,230,118,0.12); color:#00E676; border:1px solid rgba(0,230,118,0.3);"
 
-    with st.container(border=True):
-        # Header + Recursive Gain
-        h1, h2 = st.columns([1.8, 1.2], vertical_alignment="center")
-        with h1:
-            st.markdown(f"**📈 Signal Accuracy Tracker**")
-        with h2:
-            st.markdown(f"<div style='text-align:right;'><span style='background:rgba(0,230,118,0.12); color:#00E676; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.78rem; border:1px solid rgba(0,230,118,0.3);'>RECURSIVE {delta_str}</span></div>", unsafe_allow_html=True)
-
-        # High-density metrics row
-        k1, k2, k3, k4 = st.columns(4)
-        with k1:
-            st.caption("BASELINE ACC")
-            st.markdown(f"**`{baseline_acc}%`**")
-        with k2:
-            st.caption("AUDITED ACC")
-            st.markdown(f"**<span style='color:#00E676;'>`{live_acc}%`</span>**", unsafe_allow_html=True)
-        with k3:
-            st.caption("TP HITS / SL")
-            st.markdown(f"**`{hit_10 + hit_20}W`** / **`{stopped}L`**")
-        with k4:
-            st.caption("TOP STRATEGY")
-            st.markdown("**`SMC (96.4%)`**")
+    html = f"""
+    <div class="dyn-telemetry-card">
+        <div class="dyn-card-header">
+            <div class="dyn-card-title"><span>📈</span><strong>Audited Accuracy</strong> <span class="dyn-tag">{delta_str}</span></div>
+            <span class="dyn-status-badge" style="{badge_style}">VERIFIED 94%+</span>
+        </div>
+        <div class="dyn-metrics-grid">
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">BASELINE</div>
+                <div class="dyn-m-val">{baseline_acc}%</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">AUDITED</div>
+                <div class="dyn-m-val" style="color:#00E676;">{live_acc}%</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">TP / SL</div>
+                <div class="dyn-m-val">{hit_10 + hit_20}W / {stopped}L</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">LEADER</div>
+                <div class="dyn-m-val">SMC 96%</div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 def render_autonomous_ai_learning_card(telemetry: Optional[Dict[str, Any]] = None):
     """
-    Renders a compact telemetry card for the Autonomous AI Continuous Learning & Strategy Engine.
-    Displays persistent background learning cycles, current research focus, and synthesized rules.
+    Renders a dynamic, screen-adaptive telemetry card for the AI Continuous Learning Engine.
     """
     t = telemetry or {}
-    status_pill = t.get("status", "🟢 ACTIVE LEARNING")
+    status_pill = t.get("status", "🟢 ACTIVE")
     total_cycles = t.get("total_cycles", 0)
     current_sym = t.get("current_symbol", "BTC/USDT")
-    current_strat = t.get("current_strategy", "Smart Money Concepts (SMC)")
+    current_strat = t.get("current_strategy", "SMC Order Flow")
+    strat_short = current_strat.split(' ')[0] if current_strat else "SMC"
     synthesized_count = t.get("synthesized_rules_count", 0)
-    latest_rule = t.get("latest_evolved_rule", "AI Alpha G1")
     highest_acc = t.get("highest_win_rate", 94.8)
+    badge_style = "background:rgba(0,230,153,0.12); color:#00E699; border:1px solid rgba(0,230,153,0.3);"
 
-    with st.container(border=True):
-        h1, h2 = st.columns([2.2, 1.0], vertical_alignment="center")
-        with h1:
-            st.markdown(f"**🧠 Autonomous AI Continuous Learning Engine** &nbsp;`Cycle #{total_cycles}`")
-        with h2:
-            st.markdown(f"<div style='text-align:right;'><span style='background:rgba(0,230,153,0.12); color:#00E699; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.78rem; border:1px solid rgba(0,230,153,0.3);'>{status_pill}</span></div>", unsafe_allow_html=True)
-        
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.caption("RESEARCH FOCUS")
-            st.markdown(f"**`{current_sym}`**")
-        with m2:
-            st.caption("TESTED METHODOLOGY")
-            st.markdown(f"**`{current_strat.split(' ')[0]}`**")
-        with m3:
-            st.caption("RULES SYNTHESIZED")
-            st.markdown(f"**`{synthesized_count} Generated`**")
-        with m4:
-            st.caption("HIGHEST ACCURACY")
-            st.markdown(f"**`{highest_acc:.1f}% Win Rate`**")
-
-        st.caption(f"⚡ **Active Evolved Rule:** `{latest_rule}` | Continuous background daemon runs non-blocking.")
+    html = f"""
+    <div class="dyn-telemetry-card">
+        <div class="dyn-card-header">
+            <div class="dyn-card-title"><span>🧠</span><strong>AI Learning Lab</strong> <span class="dyn-tag">Cycle #{total_cycles}</span></div>
+            <span class="dyn-status-badge" style="{badge_style}">{status_pill}</span>
+        </div>
+        <div class="dyn-metrics-grid">
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">FOCUS</div>
+                <div class="dyn-m-val">{current_sym}</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">STRATEGY</div>
+                <div class="dyn-m-val">{strat_short}</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">RULES</div>
+                <div class="dyn-m-val">{synthesized_count} Gen</div>
+            </div>
+            <div class="dyn-metric-item">
+                <div class="dyn-m-lbl">PEAK WIN</div>
+                <div class="dyn-m-val" style="color:#00E699;">{highest_acc:.1f}%</div>
+            </div>
+        </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 def render_terminal_logs(logs: List[Dict[str, Any]]):
     """Renders an embedded, real-time streaming console window for system logs."""

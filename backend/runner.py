@@ -443,12 +443,13 @@ class ContinuousMarketScanner:
                     "rr_tier_hit": tier_hit if is_win else "STOPPED_OUT"
                 })
 
-    def execute_paper_trade(self, symbol: str, direction: str, price: float, stop_loss: float, take_profit: float, reason: str, strat_name: str = "Bollinger Squeeze & Vol Surge"):
-        """Simulates opening a paper breakout trade with configurable position size ($1 default)."""
+    def execute_paper_trade(self, symbol: str, direction: str, price: float, stop_loss: float, take_profit: float, reason: str, strat_name: str = "Bollinger Squeeze & Vol Surge", trade_size_usd: Optional[float] = None):
+        """Simulates opening a paper breakout trade with configurable position size ($1 default or custom)."""
         if symbol in self.open_positions:
             return
 
-        allocated = min(self.trade_size_usd, self.paper_balance)
+        effective_size = trade_size_usd if (trade_size_usd and trade_size_usd > 0) else self.trade_size_usd
+        allocated = min(effective_size, self.paper_balance)
         if allocated <= 0.0:
             log_event("WARNING", "PAPER", f"Insufficient paper balance (${self.paper_balance:.2f}) to open trade.")
             return
@@ -488,7 +489,8 @@ class ContinuousMarketScanner:
 
         for symbol in list(self.open_positions.keys()):
             pos = self.open_positions[symbol]
-            curr_price = binance_client.get_ticker_price(symbol)
+            from backend.market_data_hub import get_live_market_price
+            curr_price = get_live_market_price(symbol) or binance_client.get_ticker_price(symbol)
             if not curr_price:
                 continue
 
@@ -571,9 +573,13 @@ class ContinuousMarketScanner:
             if close_pos:
                 self._close_paper_position(symbol, curr_price, exit_reason)
 
-    def manual_close_paper_position(self, symbol: str, reason: str = "Smart Early Exit (Secured Profits)"):
+    def manual_close_paper_position(self, symbol: str, reason: str = "Smart Early Exit (Secured Profits)", exit_price: Optional[float] = None):
         """Allows one-click early profit securing or manual closing."""
-        curr_price = binance_client.get_ticker_price(symbol) or 0.0
+        if exit_price and exit_price > 0:
+            curr_price = exit_price
+        else:
+            from backend.market_data_hub import get_live_market_price
+            curr_price = get_live_market_price(symbol) or binance_client.get_ticker_price(symbol) or 0.0
         self._close_paper_position(symbol, curr_price, reason)
 
     def _close_paper_position(self, symbol: str, price: float, reason: str):
@@ -581,6 +587,9 @@ class ContinuousMarketScanner:
         if symbol not in self.open_positions:
             return
         pos = self.open_positions.pop(symbol)
+        if price <= 0.0:
+            from backend.market_data_hub import get_live_market_price
+            price = get_live_market_price(symbol) or pos.get("entry_price", 1.0)
         direction = pos["side"]
 
         if direction == "LONG":
