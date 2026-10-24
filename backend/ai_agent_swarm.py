@@ -32,10 +32,10 @@ from backend.db import get_connection, log_event
 
 # Bulletproof strategy registry resolution (supports root package and backend fallback)
 try:
-    from strategies import STRATEGY_REGISTRY
+    from backend.strategies import STRATEGY_REGISTRY
 except Exception:
     try:
-        from backend.strategies import STRATEGY_REGISTRY
+        from strategies import STRATEGY_REGISTRY
     except Exception:
         STRATEGY_REGISTRY = {}
 
