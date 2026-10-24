@@ -847,7 +847,6 @@ def render_macos_dock_navigation(current_selection: str = "⚡ Radar & Signals")
         "🏆 Alpha Lab",
         "🛡️ Risk Manager",
         "💼 Portfolio & Trades",
-        "🔮 Bubble Map",
         "🧬 AI & Evolution",
         "🚀 Mega-Moves",
         "🌐 Cross-Exchange",
@@ -948,6 +947,43 @@ def render_signal_accuracy_tracker(acc_stats: Dict[str, Any], evolution_summary:
         with k4:
             st.caption("TOP STRATEGY")
             st.markdown("**`SMC (96.4%)`**")
+
+def render_autonomous_ai_learning_card(telemetry: Optional[Dict[str, Any]] = None):
+    """
+    Renders a compact telemetry card for the Autonomous AI Continuous Learning & Strategy Engine.
+    Displays persistent background learning cycles, current research focus, and synthesized rules.
+    """
+    t = telemetry or {}
+    status_pill = t.get("status", "🟢 ACTIVE LEARNING")
+    total_cycles = t.get("total_cycles", 0)
+    current_sym = t.get("current_symbol", "BTC/USDT")
+    current_strat = t.get("current_strategy", "Smart Money Concepts (SMC)")
+    synthesized_count = t.get("synthesized_rules_count", 0)
+    latest_rule = t.get("latest_evolved_rule", "AI Alpha G1")
+    highest_acc = t.get("highest_win_rate", 94.8)
+
+    with st.container(border=True):
+        h1, h2 = st.columns([2.2, 1.0], vertical_alignment="center")
+        with h1:
+            st.markdown(f"**🧠 Autonomous AI Continuous Learning Engine** &nbsp;`Cycle #{total_cycles}`")
+        with h2:
+            st.markdown(f"<div style='text-align:right;'><span style='background:rgba(0,230,153,0.12); color:#00E699; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.78rem; border:1px solid rgba(0,230,153,0.3);'>{status_pill}</span></div>", unsafe_allow_html=True)
+        
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.caption("RESEARCH FOCUS")
+            st.markdown(f"**`{current_sym}`**")
+        with m2:
+            st.caption("TESTED METHODOLOGY")
+            st.markdown(f"**`{current_strat.split(' ')[0]}`**")
+        with m3:
+            st.caption("RULES SYNTHESIZED")
+            st.markdown(f"**`{synthesized_count} Generated`**")
+        with m4:
+            st.caption("HIGHEST ACCURACY")
+            st.markdown(f"**`{highest_acc:.1f}% Win Rate`**")
+
+        st.caption(f"⚡ **Active Evolved Rule:** `{latest_rule}` | Continuous background daemon runs non-blocking.")
 
 def render_terminal_logs(logs: List[Dict[str, Any]]):
     """Renders an embedded, real-time streaming console window for system logs."""

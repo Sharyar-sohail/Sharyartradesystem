@@ -64,14 +64,14 @@ from backend.strategies import STRATEGY_REGISTRY, analyze_manual_trade_risk
 from backend.backtester import run_single_backtest, run_global_matrix_backtest, run_targeted_mega_backtest
 from backend.ml_optimizer import strategy_optimizer
 from backend.runner import trading_runner
+from backend.evolution_engine import autonomous_learning_engine
 from ui.components import (
     TERMINAL_CUSTOM_CSS,
     render_metric_card,
     render_terminal_logs,
-    render_crypto_bubbles_cloud,
     build_pro_candlestick_chart,
-    build_pro_bubble_map,
     render_autonomous_trading_engine_visualizer,
+    render_autonomous_ai_learning_card,
     render_signal_accuracy_tracker,
     render_cmc_top_ticker_ribbon,
     render_cmc_mini_sparkline_cards,
@@ -80,8 +80,7 @@ from ui.components import (
     render_macos_dock_navigation,
     render_secret_key_login_gate,
     render_welcome_modal,
-    render_apk_distribution_card,
-    render_crypto_bubbles_side_widget
+    render_apk_distribution_card
 )
 
 # Page configuration - Native Desktop Terminal View
@@ -218,9 +217,11 @@ app_mode = render_macos_dock_navigation(st.session_state.get("macos_dock_nav", "
 # ---------------------------------------------------------------------
 # 6. COMPACT HIGH-DENSITY AUTONOMOUS ENGINE & ACCURACY TELEMETRY ROW
 # ---------------------------------------------------------------------
-c_eng, c_acc = st.columns([1.05, 0.95])
+c_eng, c_learn, c_acc = st.columns([1.0, 1.1, 0.9])
 with c_eng:
     render_autonomous_trading_engine_visualizer(trading_runner, st.session_state.selected_symbol)
+with c_learn:
+    render_autonomous_ai_learning_card(autonomous_learning_engine.get_telemetry())
 with c_acc:
     render_signal_accuracy_tracker(acc_stats)
 
@@ -234,7 +235,7 @@ if app_mode == "⚡ Radar & Signals" or "Radar" in str(app_mode):
     st.caption("Continuous background scanning across all liquid Binance trading pairs (top gainers, top losers, and ultra-high volume coins). Fully integrates SMC, ICT, VFS, VSA, Bollinger Squeezes, Candle King, and proprietary AI models with complete risk-to-reward ratios and 50% to 500%+ mega-pump detection.")
 
     # Scanner Controls & Live Filtering Bar
-    s_col1, s_col2, s_col3, s_col4, s_col5 = st.columns([1.8, 1.2, 1.2, 1.3, 1.1])
+    s_col1, s_col2, s_col3, s_col4 = st.columns([1.6, 1.1, 1.1, 1.2])
     with s_col1:
         if st.button("🚀 Instant Sweep (All Gainers, Losers & Vol)", type="primary", width='stretch'):
             with st.spinner("Executing real-time multi-strategy sweep across Binance market..."):
@@ -255,13 +256,6 @@ if app_mode == "⚡ Radar & Signals" or "Radar" in str(app_mode):
     with s_col4:
         horizon_filter = st.selectbox("Setup Horizon", ["ALL", "🏆 90%+ Win Rate Only", "💥 50%-500% Mega-Moves Only", "⚡ 10%-20% Breakouts Only"])
 
-    with s_col5:
-        radar_layout = st.selectbox(
-            "Display Layout",
-            ["⚡ Split Radar (Signals + Bubbles)", "📡 Live Signals Only", "🟢 Crypto Bubbles Widget"],
-            key="radar_layout_select"
-        )
-
     # Strategy Real-Time Verification Stats Bar
     st.divider()
     st.markdown("#### 🎯 **Real-Time Strategy Verification & Performance Monitor**")
@@ -279,13 +273,13 @@ if app_mode == "⚡ Radar & Signals" or "Radar" in str(app_mode):
         render_metric_card("LIVE ACCURACY RATE", accuracy_label, f"Across {acc_stats['resolved_trades']} resolved trades", "text-gold")
 
     # ---------------------------------------------------------------------
-    # LIVE SIGNALS & CRYPTO BUBBLES SMOOTH STREAMING FRAGMENT (Zero Flickering)
+    # LIVE SIGNALS SMOOTH STREAMING FRAGMENT (Zero Flickering, Clean Minimalist UI)
     # ---------------------------------------------------------------------
     st.divider()
     st.markdown("#### 📡 **Live Market Signals (With Mandatory R:R & Complete Trade Metrics)**")
 
     @st.fragment(run_every="5s")
-    def render_live_signals_radar_stream_fragment(dir_flt: str, stat_flt: str, horiz_flt: str, layout_mode: str):
+    def render_live_signals_radar_stream_fragment(dir_flt: str, stat_flt: str, horiz_flt: str):
         min_conf = 90.0 if "90%+" in horiz_flt else None
         signals_list = get_all_breakout_signals(limit=180, direction=dir_flt, status=stat_flt, min_confidence=min_conf)
 
@@ -307,253 +301,227 @@ if app_mode == "⚡ Radar & Signals" or "Radar" in str(app_mode):
         if signals_list:
             signals_list = sorted(signals_list, key=sig_sort_priority)
 
-        # Build dynamic opportunity universe for Crypto Bubbles widget
-        bubble_opps = []
-        for s in (signals_list or []):
-            bubble_opps.append({
-                "symbol": s.get("symbol", ""),
-                "direction": s.get("direction", "LONG"),
-                "strategy": s.get("strategy_name", "AI Dynamic Consensus"),
-                "expected_move_pct": s.get("expected_move_pct", 20.0),
-                "confidence": s.get("ai_confidence_pct", 92.0),
-                "price": s.get("entry_price", 1.0)
-            })
+        if signals_list:
+            display_data = []
+            for s in signals_list:
+                direction = s["direction"]
+                entry_p = s["entry_price"]
+                curr_p = s["current_price"]
+                strat_name = s.get("strategy_name", "Bollinger Squeeze & Vol Surge")
+                rr_val = s.get("risk_reward_ratio", 3.5)
+                exp_move = s.get("expected_move_pct", 20.0)
+                ai_conf = s.get("ai_confidence_pct", 91.0)
+                target_mega = s.get("target_mega", 0.0)
 
-        if layout_mode == "🟢 Crypto Bubbles Widget":
-            render_crypto_bubbles_side_widget(bubble_opps, selected_symbol=st.session_state.selected_symbol)
-            st.markdown("<div style='margin-bottom:14px;'></div>", unsafe_allow_html=True)
-            render_crypto_bubbles_cloud(bubble_opps, selected_symbol=st.session_state.selected_symbol)
-            return
+                # Strategy Badge Styling
+                if "Mega-Pump" in strat_name:
+                    strat_badge = f"💥 {strat_name}"
+                elif "AI Dynamic" in strat_name:
+                    strat_badge = f"🧠 {strat_name}"
+                elif "SMC" in strat_name:
+                    strat_badge = f"🏛️ {strat_name}"
+                elif "ICT" in strat_name:
+                    strat_badge = f"🎯 {strat_name}"
+                elif "VFS" in strat_name:
+                    strat_badge = f"📊 {strat_name}"
+                elif "VSA" in strat_name:
+                    strat_badge = f"🔍 {strat_name}"
+                elif "Candle King" in strat_name:
+                    strat_badge = f"👑 {strat_name}"
+                elif "RSI" in strat_name:
+                    strat_badge = f"📈 {strat_name}"
+                else:
+                    strat_badge = f"⚡ {strat_name}"
 
-        is_split = (layout_mode == "⚡ Split Radar (Signals + Bubbles)")
-        col_main, col_widget = st.columns([1.75, 1.25]) if is_split else (st.container(), None)
+                dir_badge = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+                
+                # Live PnL % calculation
+                if direction == "LONG":
+                    live_pnl_pct = ((curr_p - entry_p) / entry_p) * 100
+                else:
+                    live_pnl_pct = ((entry_p - curr_p) / entry_p) * 100
 
-        with col_main:
-            if signals_list:
-                display_data = []
-                for s in signals_list:
-                    direction = s["direction"]
-                    entry_p = s["entry_price"]
-                    curr_p = s["current_price"]
-                    strat_name = s.get("strategy_name", "Bollinger Squeeze & Vol Surge")
-                    rr_val = s.get("risk_reward_ratio", 3.5)
-                    exp_move = s.get("expected_move_pct", 20.0)
-                    ai_conf = s.get("ai_confidence_pct", 91.0)
-                    target_mega = s.get("target_mega", 0.0)
+                # Status styling
+                stat = s["status"]
+                if stat == "MEGA_HIT":
+                    stat_badge = "💥 MEGA HIT (50%+)"
+                elif stat == "HIT_20PCT":
+                    stat_badge = "🚀 20% TARGET HIT"
+                elif stat == "HIT_10PCT":
+                    stat_badge = "🎯 10% TARGET HIT"
+                elif stat == "STOPPED_OUT":
+                    stat_badge = "🛑 STOPPED OUT"
+                else:
+                    stat_badge = "🔥 ACTIVE"
 
-                    # Strategy Badge Styling
-                    if "Mega-Pump" in strat_name:
-                        strat_badge = f"💥 {strat_name}"
-                    elif "AI Dynamic" in strat_name:
-                        strat_badge = f"🧠 {strat_name}"
-                    elif "SMC" in strat_name:
-                        strat_badge = f"🏛️ {strat_name}"
-                    elif "ICT" in strat_name:
-                        strat_badge = f"🎯 {strat_name}"
-                    elif "VFS" in strat_name:
-                        strat_badge = f"📊 {strat_name}"
-                    elif "VSA" in strat_name:
-                        strat_badge = f"🔍 {strat_name}"
-                    elif "Candle King" in strat_name:
-                        strat_badge = f"👑 {strat_name}"
-                    elif "RSI" in strat_name:
-                        strat_badge = f"📈 {strat_name}"
-                    else:
-                        strat_badge = f"⚡ {strat_name}"
+                exp_move_str = f"{exp_move:+.1f}% 💥 MEGA" if abs(exp_move) >= 50.0 else f"{exp_move:+.1f}%"
+                conf_str = f"{ai_conf:.1f}% ⭐ (90%+)" if ai_conf >= 90.0 else f"{ai_conf:.1f}%"
 
-                    dir_badge = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
-                    
-                    # Live PnL % calculation
-                    if direction == "LONG":
-                        live_pnl_pct = ((curr_p - entry_p) / entry_p) * 100
-                    else:
-                        live_pnl_pct = ((entry_p - curr_p) / entry_p) * 100
+                bw_pct = float(s.get("bandwidth", 0.035)) * 100.0
+                vol_s_val = float(s.get("vol_surge", 2.0))
 
-                    # Status styling
-                    stat = s["status"]
-                    if stat == "MEGA_HIT":
-                        stat_badge = "💥 MEGA HIT (50%+)"
-                    elif stat == "HIT_20PCT":
-                        stat_badge = "🚀 20% TARGET HIT"
-                    elif stat == "HIT_10PCT":
-                        stat_badge = "🎯 10% TARGET HIT"
-                    elif stat == "STOPPED_OUT":
-                        stat_badge = "🛑 STOPPED OUT"
-                    else:
-                        stat_badge = "🔥 ACTIVE"
+                display_data.append({
+                    "ID": s["id"],
+                    "Pair": s["symbol"],
+                    "Strategy": strat_badge,
+                    "Position": dir_badge,
+                    "Vol Surge": f"{vol_s_val:.1f}x",
+                    "Squeeze BW": f"{bw_pct:.1f}%",
+                    "Entry Point": f"${entry_p:,.4f}" if entry_p < 10 else f"${entry_p:,.2f}",
+                    "Hard SL": f"${s['stop_loss']:,.4f}" if s['stop_loss'] < 10 else f"${s['stop_loss']:,.2f}",
+                    "TP1 (10%)": f"${s['target_10pct']:,.4f}" if s['target_10pct'] < 10 else f"${s['target_10pct']:,.2f}",
+                    "TP2 (20%)": f"${s['target_20pct']:,.4f}" if s['target_20pct'] < 10 else f"${s['target_20pct']:,.2f}",
+                    "Mega TP (50%+)": f"${target_mega:,.4f}" if target_mega < 10 and target_mega > 0 else (f"${target_mega:,.2f}" if target_mega > 0 else "N/A"),
+                    "Risk:Reward": f"1:{rr_val}",
+                    "R:R Tier Hit": s.get("rr_hit_tier", "NONE"),
+                    "Expected Move": exp_move_str,
+                    "AI Win Rate": conf_str,
+                    "Mark Price": f"${curr_p:,.4f}" if curr_p < 10 else f"${curr_p:,.2f}",
+                    "Live PnL %": f"{live_pnl_pct:+.2f}%",
+                    "Max Gain": f"+{s['max_favorable_pct']:.1f}%",
+                    "Status": stat_badge,
+                    "Time": s["timestamp"].split(" ")[-1],
+                    "_raw": s
+                })
 
-                    exp_move_str = f"{exp_move:+.1f}% 💥 MEGA" if abs(exp_move) >= 50.0 else f"{exp_move:+.1f}%"
-                    conf_str = f"{ai_conf:.1f}% ⭐ (90%+)" if ai_conf >= 90.0 else f"{ai_conf:.1f}%"
+            df_show = pd.DataFrame([{k: v for k, v in d.items() if not k.startswith("_")} for d in display_data])
+            st.dataframe(df_show, width='stretch', hide_index=True)
 
-                    bw_pct = float(s.get("bandwidth", 0.035)) * 100.0
-                    vol_s_val = float(s.get("vol_surge", 2.0))
+            # ---------------------------------------------------------------------
+            # CLICKABLE ALGORITHMIC RATIONALE & MARKET MECHANICS INSPECTION VIEW
+            # ---------------------------------------------------------------------
+            st.markdown("#### 🔬 **Clickable Algorithmic Rationale & Market Mechanics Inspection**")
+            st.caption("Select any active signal above to inspect the exact algorithmic triggers, Order Block mitigations, liquidity sweeps, and volume footprints driving the pump/dump.")
 
-                    display_data.append({
-                        "ID": s["id"],
-                        "Pair": s["symbol"],
-                        "Strategy": strat_badge,
-                        "Position": dir_badge,
-                        "Vol Surge": f"{vol_s_val:.1f}x",
-                        "Squeeze BW": f"{bw_pct:.1f}%",
-                        "Entry Point": f"${entry_p:,.4f}" if entry_p < 10 else f"${entry_p:,.2f}",
-                        "Hard SL": f"${s['stop_loss']:,.4f}" if s['stop_loss'] < 10 else f"${s['stop_loss']:,.2f}",
-                        "TP1 (10%)": f"${s['target_10pct']:,.4f}" if s['target_10pct'] < 10 else f"${s['target_10pct']:,.2f}",
-                        "TP2 (20%)": f"${s['target_20pct']:,.4f}" if s['target_20pct'] < 10 else f"${s['target_20pct']:,.2f}",
-                        "Mega TP (50%+)": f"${target_mega:,.4f}" if target_mega < 10 and target_mega > 0 else (f"${target_mega:,.2f}" if target_mega > 0 else "N/A"),
-                        "Risk:Reward": f"1:{rr_val}",
-                        "R:R Tier Hit": s.get("rr_hit_tier", "NONE"),
-                        "Expected Move": exp_move_str,
-                        "AI Win Rate": conf_str,
-                        "Mark Price": f"${curr_p:,.4f}" if curr_p < 10 else f"${curr_p:,.2f}",
-                        "Live PnL %": f"{live_pnl_pct:+.2f}%",
-                        "Max Gain": f"+{s['max_favorable_pct']:.1f}%",
-                        "Status": stat_badge,
-                        "Time": s["timestamp"].split(" ")[-1],
-                        "_raw": s
-                    })
+            c_pick, c_view = st.columns([3, 1])
+            with c_pick:
+                chosen_sig_id = st.selectbox(
+                    "Choose Active Signal to Inspect Algorithmic Rationale & Market Mechanics",
+                    [d["ID"] for d in display_data],
+                    format_func=lambda x: f"Setup #{x} - {next(d['Pair'] for d in display_data if d['ID']==x)} ({next(d['Position'] for d in display_data if d['ID']==x)}) | Strat: {next(d['Strategy'] for d in display_data if d['ID']==x)} | Vol: {next(d['Vol Surge'] for d in display_data if d['ID']==x)} | Squeeze: {next(d['Squeeze BW'] for d in display_data if d['ID']==x)} | Win Rate: {next(d['AI Win Rate'] for d in display_data if d['ID']==x)}"
+                )
+            with c_view:
+                st.write("")
+                st.write("")
+                render_inline_chart = st.button("📊 Render Setup Chart with Levels", type="primary", width='stretch', key="btn_render_inline_chart")
 
-                df_show = pd.DataFrame([{k: v for k, v in d.items() if not k.startswith("_")} for d in display_data])
-                st.dataframe(df_show, width='stretch', hide_index=True)
+            # Find selected setup details
+            target_item = next(d for d in display_data if d["ID"] == chosen_sig_id)
+            raw_sig = target_item["_raw"]
 
-                # ---------------------------------------------------------------------
-                # CLICKABLE ALGORITHMIC RATIONALE & MARKET MECHANICS INSPECTION VIEW
-                # ---------------------------------------------------------------------
-                st.markdown("#### 🔬 **Clickable Algorithmic Rationale & Market Mechanics Inspection**")
-                st.caption("Select any active signal above to inspect the exact algorithmic triggers, Order Block mitigations, liquidity sweeps, and volume footprints driving the pump/dump.")
+            # Algorithmic Rationale & Market Mechanics Breakdown Card
+            rationale = get_algorithmic_rationale_breakdown(raw_sig)
+            with st.container(border=True):
+                r_col1, r_col2 = st.columns([1.7, 2.3])
+                with r_col1:
+                    st.markdown(f"### {target_item['Position']} **`{target_item['Pair']}`**")
+                    st.markdown(f"**Strategy Engine:** `{rationale['strategy_name']}`")
+                    st.markdown(f"**Isolated AI Conviction:** `{rationale['ai_confidence_pct']}% Win Rate`")
+                    st.markdown(f"**Target Risk-to-Reward:** `{rationale['risk_reward_ratio']} R:R`")
+                    st.caption("Trigger Timeframe: 15m Breakout / 1m Micro Execution")
 
-                c_pick, c_view = st.columns([3, 1])
-                with c_pick:
-                    chosen_sig_id = st.selectbox(
-                        "Choose Active Signal to Inspect Algorithmic Rationale & Market Mechanics",
-                        [d["ID"] for d in display_data],
-                        format_func=lambda x: f"Setup #{x} - {next(d['Pair'] for d in display_data if d['ID']==x)} ({next(d['Position'] for d in display_data if d['ID']==x)}) | Strat: {next(d['Strategy'] for d in display_data if d['ID']==x)} | Vol: {next(d['Vol Surge'] for d in display_data if d['ID']==x)} | Squeeze: {next(d['Squeeze BW'] for d in display_data if d['ID']==x)} | Win Rate: {next(d['AI Win Rate'] for d in display_data if d['ID']==x)}"
-                    )
-                with c_view:
-                    st.write("")
-                    st.write("")
-                    render_inline_chart = st.button("📊 Render Setup Chart with Levels", type="primary", width='stretch', key="btn_render_inline_chart")
+                    # Trigger metrics badges in structured sub-columns
+                    m_sub1, m_sub2, m_sub3 = st.columns(3)
+                    with m_sub1:
+                        st.metric("Vol Surge", f"{rationale['volume_surge']:.1f}x")
+                    with m_sub2:
+                        st.metric("Bandwidth", f"{rationale['bandwidth_pct']:.1f}%")
+                    with m_sub3:
+                        st.metric("Risk Distance", f"{rationale['risk_distance_pct']:.2f}%")
 
-                # Find selected setup details
-                target_item = next(d for d in display_data if d["ID"] == chosen_sig_id)
-                raw_sig = target_item["_raw"]
+                    # Quick execute demo trade button
+                    if st.button(f"⚡ Execute Demo Trade (${trading_runner.trade_size_usd:.2f})", key=f"quick_exec_{target_item['ID']}", type="primary", width="stretch"):
+                        trading_runner.execute_paper_trade(
+                            symbol=target_item["Pair"],
+                            direction=raw_sig["direction"],
+                            price=raw_sig["entry_price"],
+                            stop_loss=raw_sig["stop_loss"],
+                            take_profit=raw_sig["target_20pct"],
+                            reason=rationale["raw_signal_reason"],
+                            strat_name=raw_sig["strategy_name"]
+                        )
+                        st.success(f"✅ Demo Trade opened on {target_item['Pair']}!")
 
-                # Algorithmic Rationale & Market Mechanics Breakdown Card
-                rationale = get_algorithmic_rationale_breakdown(raw_sig)
-                with st.container(border=True):
-                    r_col1, r_col2 = st.columns([1.7, 2.3])
-                    with r_col1:
-                        st.markdown(f"### {target_item['Position']} **`{target_item['Pair']}`**")
-                        st.markdown(f"**Strategy Engine:** `{rationale['strategy_name']}`")
-                        st.markdown(f"**Isolated AI Conviction:** `{rationale['ai_confidence_pct']}% Win Rate`")
-                        st.markdown(f"**Target Risk-to-Reward:** `{rationale['risk_reward_ratio']} R:R`")
-                        st.caption("Trigger Timeframe: 15m Breakout / 1m Micro Execution")
+                with r_col2:
+                    st.markdown("##### 🏛️ **Underlying Algorithmic Reasons & Market Mechanics**")
+                    st.markdown(f"**1. Order Block & Structural Trigger:**\n\n{rationale['structural_mechanics']}")
+                    st.markdown(f"**2. Pre-Entry Liquidity Sweep:**\n\n{rationale['liquidity_mechanics']}")
+                    st.markdown(f"**3. Volume Surge Footprint:**\n\n{rationale['volume_mechanics']}")
+                    st.markdown(f"**4. Execution & Invalidation Rules:**\n\n{rationale['invalidation_rules']}")
 
-                        # Trigger metrics badges in structured sub-columns
-                        m_sub1, m_sub2, m_sub3 = st.columns(3)
-                        with m_sub1:
-                            st.metric("Vol Surge", f"{rationale['volume_surge']:.1f}x")
-                        with m_sub2:
-                            st.metric("Bandwidth", f"{rationale['bandwidth_pct']:.1f}%")
-                        with m_sub3:
-                            st.metric("Risk Distance", f"{rationale['risk_distance_pct']:.2f}%")
-
-                        # Quick execute demo trade button
-                        if st.button(f"⚡ Execute Demo Trade (${trading_runner.trade_size_usd:.2f})", key=f"quick_exec_{target_item['ID']}", type="primary", width="stretch"):
-                            trading_runner.execute_paper_trade(
-                                symbol=target_item["Pair"],
-                                direction=raw_sig["direction"],
-                                price=raw_sig["entry_price"],
-                                stop_loss=raw_sig["stop_loss"],
-                                take_profit=raw_sig["target_20pct"],
-                                reason=rationale["raw_signal_reason"],
-                                strat_name=raw_sig["strategy_name"]
-                            )
-                            st.success(f"✅ Demo Trade opened on {target_item['Pair']}!")
-
-                    with r_col2:
-                        st.markdown("##### 🏛️ **Underlying Algorithmic Reasons & Market Mechanics**")
-                        st.markdown(f"**1. Order Block & Structural Trigger:**\n\n{rationale['structural_mechanics']}")
-                        st.markdown(f"**2. Pre-Entry Liquidity Sweep:**\n\n{rationale['liquidity_mechanics']}")
-                        st.markdown(f"**3. Volume Surge Footprint:**\n\n{rationale['volume_mechanics']}")
-                        st.markdown(f"**4. Execution & Invalidation Rules:**\n\n{rationale['invalidation_rules']}")
-
-                # If user clicked render or chart not yet loaded for this symbol
-                if render_inline_chart or st.session_state.chart_custom_title is None or target_item["Pair"] not in str(st.session_state.chart_custom_title):
-                    pair_name = target_item["Pair"]
-                    with st.spinner(f"Loading candles and plotting trade levels for {pair_name}..."):
-                        c_df = binance_client.fetch_ohlcv(pair_name, timeframe="15m", limit=120)
-                        if c_df is None or c_df.empty:
-                            from backend.market_data_hub import fetch_ohlcv_universal
-                            c_df = fetch_ohlcv_universal(pair_name, timeframe="15m", limit=120)
-                        st.session_state.chart_candles = c_df
-                        st.session_state.selected_symbol = pair_name
-                        st.session_state.chart_custom_title = f"{pair_name} ({target_item['Position']}) • {target_item['Strategy']} • R:R {target_item['Risk:Reward']}"
-                        st.session_state.chart_trade_levels = {
-                            "entry_price": raw_sig["entry_price"],
-                            "stop_loss": raw_sig["stop_loss"],
-                            "target_10pct": raw_sig["target_10pct"],
-                            "target_20pct": raw_sig["target_20pct"],
-                            "target_mega": raw_sig.get("target_mega", 0.0)
-                        }
-
-                # Render the interactive chart directly on the dashboard
-                if not st.session_state.chart_candles.empty:
-                    st.markdown(f"##### **Visual Verification: {st.session_state.chart_custom_title}**")
-                    
-                    # Key level summary pills
-                    lvl_col1, lvl_col2, lvl_col3, lvl_col4, lvl_col5 = st.columns(5)
-                    with lvl_col1:
-                        render_metric_card("PRECISE ENTRY", target_item["Entry Point"], f"Mark: {target_item['Mark Price']}", "text-gold")
-                    with lvl_col2:
-                        render_metric_card("HARD STOP-LOSS", target_item["Hard SL"], "Risk Defined", "text-red")
-                    with lvl_col3:
-                        render_metric_card("TAKE PROFIT (TP1/TP2)", f"{target_item['TP2 (20%)']}", f"TP1: {target_item['TP1 (10%)']}", "text-green")
-                    with lvl_col4:
-                        render_metric_card("MEGA TARGET (50%+)", f"{target_item['Mega TP (50%+)']}", f"Move: {target_item['Expected Move']}", "text-cyan")
-                    with lvl_col5:
-                        render_metric_card("RISK-TO-REWARD (R:R)", f"{target_item['Risk:Reward']}", f"Win Rate: {target_item['AI Win Rate']}", "text-gold")
-
-                    fig_setup = build_pro_candlestick_chart(
-                        df=st.session_state.chart_candles,
-                        symbol=st.session_state.selected_symbol,
-                        timeframe="15m",
-                        signals_df=None,
-                        show_ema=True,
-                        show_bollinger=True,
-                        show_smc=True,
-                        show_supertrend=False,
-                        trade_levels=st.session_state.chart_trade_levels
-                    )
-                    st.plotly_chart(fig_setup, width="stretch")
-
-                    # Instant Prominent Copy Signal / Share to Group (Requirement 3)
-                    sig_payload = {
-                        "symbol": raw_sig.get("symbol", target_item["Pair"]),
-                        "direction": raw_sig.get("direction", "LONG"),
-                        "strategy_name": raw_sig.get("strategy_name", target_item["Strategy"]),
-                        "win_rate_pct": raw_sig.get("ai_confidence_pct", 92.5),
-                        "ai_confidence_pct": raw_sig.get("ai_confidence_pct", 92.5),
-                        "entry_price": raw_sig.get("entry_price", 0.0),
-                        "stop_loss": raw_sig.get("stop_loss", 0.0),
-                        "tp1": raw_sig.get("target_10pct", 0.0),
-                        "tp2": raw_sig.get("target_20pct", 0.0),
-                        "runner_tp": raw_sig.get("target_mega", 0.0),
-                        "risk_reward_ratio": raw_sig.get("risk_reward_ratio", 3.5)
+            # If user clicked render or chart not yet loaded for this symbol
+            if render_inline_chart or st.session_state.chart_custom_title is None or target_item["Pair"] not in str(st.session_state.chart_custom_title):
+                pair_name = target_item["Pair"]
+                with st.spinner(f"Loading candles and plotting trade levels for {pair_name}..."):
+                    c_df = binance_client.fetch_ohlcv(pair_name, timeframe="15m", limit=120)
+                    if c_df is None or c_df.empty:
+                        from backend.market_data_hub import fetch_ohlcv_universal
+                        c_df = fetch_ohlcv_universal(pair_name, timeframe="15m", limit=120)
+                    st.session_state.chart_candles = c_df
+                    st.session_state.selected_symbol = pair_name
+                    st.session_state.chart_custom_title = f"{pair_name} ({target_item['Position']}) • {target_item['Strategy']} • R:R {target_item['Risk:Reward']}"
+                    st.session_state.chart_trade_levels = {
+                        "entry_price": raw_sig["entry_price"],
+                        "stop_loss": raw_sig["stop_loss"],
+                        "target_10pct": raw_sig["target_10pct"],
+                        "target_20pct": raw_sig["target_20pct"],
+                        "target_mega": raw_sig.get("target_mega", 0.0)
                     }
-                    formatted_share = format_signal_share_text(sig_payload)
-                    with st.container(border=True):
-                        st.markdown(f"#### 📋 **Instant Copy Signal / Share to Group (Telegram / Discord / WhatsApp)**")
-                        st.caption("One-click copyable formatted signal text ready to paste directly into VIP channels or groups:")
-                        st.code(formatted_share, language="text")
 
-            else:
-                st.info("Continuous background scanner is actively scanning Binance markets... High-accuracy signals matching your filters will stream in real-time.")
+            # Render the interactive chart directly on the dashboard
+            if not st.session_state.chart_candles.empty:
+                st.markdown(f"##### **Visual Verification: {st.session_state.chart_custom_title}**")
+                
+                # Key level summary pills
+                lvl_col1, lvl_col2, lvl_col3, lvl_col4, lvl_col5 = st.columns(5)
+                with lvl_col1:
+                    render_metric_card("PRECISE ENTRY", target_item["Entry Point"], f"Mark: {target_item['Mark Price']}", "text-gold")
+                with lvl_col2:
+                    render_metric_card("HARD STOP-LOSS", target_item["Hard SL"], "Risk Defined", "text-red")
+                with lvl_col3:
+                    render_metric_card("TAKE PROFIT (TP1/TP2)", f"{target_item['TP2 (20%)']}", f"TP1: {target_item['TP1 (10%)']}", "text-green")
+                with lvl_col4:
+                    render_metric_card("MEGA TARGET (50%+)", f"{target_item['Mega TP (50%+)']}", f"Move: {target_item['Expected Move']}", "text-cyan")
+                with lvl_col5:
+                    render_metric_card("RISK-TO-REWARD (R:R)", f"{target_item['Risk:Reward']}", f"Win Rate: {target_item['AI Win Rate']}", "text-gold")
 
-        if is_split and col_widget is not None:
-            with col_widget:
-                render_crypto_bubbles_side_widget(bubble_opps, selected_symbol=st.session_state.selected_symbol)
+                fig_setup = build_pro_candlestick_chart(
+                    df=st.session_state.chart_candles,
+                    symbol=st.session_state.selected_symbol,
+                    timeframe="15m",
+                    signals_df=None,
+                    show_ema=True,
+                    show_bollinger=True,
+                    show_smc=True,
+                    show_supertrend=False,
+                    trade_levels=st.session_state.chart_trade_levels
+                )
+                st.plotly_chart(fig_setup, width="stretch")
 
-    render_live_signals_radar_stream_fragment(dir_filter, status_filter, horizon_filter, radar_layout)
+                # Instant Prominent Copy Signal / Share to Group (Requirement 3)
+                sig_payload = {
+                    "symbol": raw_sig.get("symbol", target_item["Pair"]),
+                    "direction": raw_sig.get("direction", "LONG"),
+                    "strategy_name": raw_sig.get("strategy_name", target_item["Strategy"]),
+                    "win_rate_pct": raw_sig.get("ai_confidence_pct", 92.5),
+                    "ai_confidence_pct": raw_sig.get("ai_confidence_pct", 92.5),
+                    "entry_price": raw_sig.get("entry_price", 0.0),
+                    "stop_loss": raw_sig.get("stop_loss", 0.0),
+                    "tp1": raw_sig.get("target_10pct", 0.0),
+                    "tp2": raw_sig.get("target_20pct", 0.0),
+                    "runner_tp": raw_sig.get("target_mega", 0.0),
+                    "risk_reward_ratio": raw_sig.get("risk_reward_ratio", 3.5)
+                }
+                formatted_share = format_signal_share_text(sig_payload)
+                with st.container(border=True):
+                    st.markdown(f"#### 📋 **Instant Copy Signal / Share to Group (Telegram / Discord / WhatsApp)**")
+                    st.caption("One-click copyable formatted signal text ready to paste directly into VIP channels or groups:")
+                    st.code(formatted_share, language="text")
+
+        else:
+            st.info("Continuous background scanner is actively scanning Binance markets... High-accuracy signals matching your filters will stream in real-time.")
+
+    render_live_signals_radar_stream_fragment(dir_filter, status_filter, horizon_filter)
 
 # ---------------------------------------------------------------------
 # TAB: LIVE STATUS & TERMINAL LOGS
@@ -1389,20 +1357,38 @@ elif app_mode == "📦 Batch Analytics" or "Batch" in str(app_mode):
         st.error(f"Error loading batch performance metrics: {e}")
 
 elif app_mode == "🧬 AI & Evolution" or "Evolution" in str(app_mode):
-    st.markdown("### 🧬 **Autonomous Self-Learning & Strategy Evolution Core**")
-    st.caption("Self-improving AI engine continuously analyzing closed batch outcomes, diagnosing failure patterns (whipsaws, trend invalidations, slippage), mutating hyperparameters, and synthesizing new evolved strategies directly into SQLite.")
+    st.markdown("### 🧬 **Autonomous Continuous AI Learning & Strategy Evolution Core**")
+    st.caption("Persistent background AI daemon constantly analyzing live and historical market strategies across global exchanges, diagnosing failure patterns, empirically mutating hyperparameters, and synthesizing new high-win-rate trading rules directly into SQLite without blocking the main trading interface.")
 
+    # 1. Background Continuous Learning Engine Live Telemetry
+    telemetry = autonomous_learning_engine.get_telemetry()
     evo_status = strategy_evolution_core.get_status()
     gen = evo_status["current_generation"]
-    total_evolved = evo_status["total_evolved_strategies"]
+    total_evolved = max(evo_status["total_evolved_strategies"], telemetry.get("synthesized_rules_count", 0))
 
-    e1, e2, e3 = st.columns(3)
-    with e1:
-        render_metric_card("EVOLUTION GENERATION", f"Gen #{gen}", "Autonomous Adaptive Iterations", "text-cyan")
-    with e2:
-        render_metric_card("SYNTHESIZED STRATEGIES", f"{total_evolved} Rules", "Stored & Active in SQLite", "text-gold")
-    with e3:
-        render_metric_card("ADAPTIVE ENGINES", "7 Families", "SMC, ICT, VFS, VSA, BB, CK, MA", "text-green")
+    with st.container(border=True):
+        st.markdown("#### ⚡ **Continuous Autonomous Learning Engine Daemon**")
+        st.caption(f"Engine State: **{telemetry.get('status', '🟢 ACTIVE LEARNING')}** • Last Cycle: `{telemetry.get('last_cycle_time', 'Active')}` • Analyzing: `{telemetry.get('current_symbol', 'BTC/USDT')}` with `{telemetry.get('current_strategy', 'Smart Money Concepts (SMC)')}`")
+
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            render_metric_card("LEARNING CYCLES", f"{telemetry.get('total_cycles', 0):,}", "Persistent AI Iterations", "text-cyan")
+        with c2:
+            render_metric_card("SYNTHESIZED RULES", f"{total_evolved} Strategies", "Active in SQLite", "text-gold")
+        with c3:
+            render_metric_card("PEAK WIN RATE", f"{telemetry.get('highest_win_rate', 92.5):.1f}%", "Empirical Validation", "text-green")
+        with c4:
+            render_metric_card("EVOLUTION GEN", f"Gen #{gen}", "Genetic Algorithm Gen", "text-cyan")
+
+        b_col1, b_col2 = st.columns([3, 1])
+        with b_col1:
+            st.info(f"💡 **Latest Synthesized AI Rule:** `{telemetry.get('latest_evolved_rule', 'AI Alpha Hyper-Adaptive Squeeze')}` — Autonomously verified and added to execution engine.")
+        with b_col2:
+            if st.button("⚡ Run Learning Burst", width="stretch", help="Trigger an immediate on-demand AI strategy optimization and rule synthesis cycle in the background."):
+                with st.spinner("AI analyzing multi-pair order book dynamics and mutating strategy rules..."):
+                    new_rule = autonomous_learning_engine._run_learning_cycle()
+                st.success(f"Synthesized new rule: {new_rule.get('name', 'AI Alpha')} ({new_rule.get('win_rate', 91.0):.1f}% Win Rate)!")
+                st.rerun()
 
     st.divider()
     st.markdown("#### ⚙️ **Active Adaptive Parameters (Autonomously Tuned by AI Feedback)**")
@@ -1428,22 +1414,35 @@ elif app_mode == "🧬 AI & Evolution" or "Evolution" in str(app_mode):
     st.divider()
     st.markdown("#### 🧪 **Newly Evolved & Synthesized Strategies**")
     evolved_list = evo_status.get("evolved_strategies", [])
-    if evolved_list:
+    recent_telemetry_rules = telemetry.get("recent_rules", [])
+
+    if recent_telemetry_rules or evolved_list:
         ev_rows = []
-        for ev in evolved_list:
-            wr_val = ev.get("win_rate_pct", 0.0)
-            wr_str = f"{float(wr_val):.1f}%" if wr_val is not None else "N/A"
+        # Priority to continuous learning synthesized rules
+        for r in recent_telemetry_rules:
             ev_rows.append({
-                "Gen": ev.get("generation", 1),
-                "Strategy Name": ev.get("strategy_name", "Evolved Alpha"),
-                "Base Strategy": ev.get("base_strategy", "Default"),
-                "Win Rate %": wr_str,
-                "Mutation Rationale": ev.get("mutation_reason", "Parameter Optimization"),
-                "Created At": ev.get("created_at", "-")
+                "Gen": r.get("generation", 1),
+                "Strategy Name": r.get("name", "AI Evolved Rule"),
+                "Base Strategy": r.get("base_strategy", "Dynamic Adaptive"),
+                "Win Rate %": f"{r.get('win_rate', 90.0):.1f}%",
+                "Mutation Rationale": r.get("mutation_reason", "Autonomous AI Synthesis"),
+                "Created At": r.get("created_at", "-")
             })
+        for ev in evolved_list:
+            if not any(row["Strategy Name"] == ev.get("strategy_name") for row in ev_rows):
+                wr_val = ev.get("win_rate_pct", 0.0)
+                wr_str = f"{float(wr_val):.1f}%" if wr_val is not None else "N/A"
+                ev_rows.append({
+                    "Gen": ev.get("generation", 1),
+                    "Strategy Name": ev.get("strategy_name", "Evolved Alpha"),
+                    "Base Strategy": ev.get("base_strategy", "Default"),
+                    "Win Rate %": wr_str,
+                    "Mutation Rationale": ev.get("mutation_reason", "Parameter Optimization"),
+                    "Created At": ev.get("created_at", "-")
+                })
         st.dataframe(pd.DataFrame(ev_rows), width="stretch", hide_index=True)
     else:
-        st.info("The self-learning core synthesizes new evolved strategy rules upon batch completion or when error patterns are diagnosed.")
+        st.info("The self-learning core synthesizes new evolved strategy rules upon batch completion or continuous market scans.")
 
     st.divider()
     st.markdown("#### 📋 **Evolution Audit Log (Recent Diagnostic Adjustments)**")
@@ -1842,168 +1841,6 @@ elif app_mode == "🌐 Cross-Exchange" or "Cross-Exchange" in str(app_mode):
         st.dataframe(pd.DataFrame(table_rows), width='stretch', hide_index=True)
     else:
         st.info("Fetching cross-exchange data from Binance, Bybit, Bitget, and Gate.io...")
-
-# ---------------------------------------------------------------------
-# TAB: BUBBLE MAP PRO RADAR & INTERACTIVE STRATEGY CHARTS
-# ---------------------------------------------------------------------
-elif app_mode == "🔮 Bubble Map" or "Bubble Map" in str(app_mode):
-    st.markdown("### 🔮 **Revolutionary Bubble Map Pro Radar & Interactive Visual Charts**")
-    st.caption("Dynamic institutional market-wide bubble radar. **Massive bubbles** represent Mega-Pumps/Dumps (50% to 500%+), medium bubbles represent breakouts (20%-50%), and smaller bubbles represent intraday setups. **Color-coded:** Green (Long) vs Red (Short). Clicking any bubble pre-loads the full high-accuracy strategy.")
-
-    # 1. Gather all live opportunity bubbles
-    live_signals = get_all_breakout_signals(limit=35)
-    mined_megas = get_mega_moves(limit=15)
-
-    bubble_opps = []
-    seen_syms = set()
-
-    for s in live_signals:
-        sym = s.get("symbol", "")
-        if sym in seen_syms:
-            continue
-        seen_syms.add(sym)
-        exp_move = float(s.get("expected_move_pct") or 20.0)
-        bubble_opps.append({
-            "symbol": sym,
-            "direction": s.get("direction", "LONG"),
-            "strategy_name": s.get("strategy_name", "AI Dynamic Consensus"),
-            "expected_move_pct": exp_move,
-            "risk_reward_ratio": float(s.get("risk_reward_ratio") or 3.2),
-            "ai_confidence_pct": float(s.get("ai_confidence_pct") or 92.5),
-            "entry_price": float(s.get("entry_price") or 1.0),
-            "stop_loss": float(s.get("stop_loss") or 0.95),
-            "target_10pct": float(s.get("target_10pct") or 1.1),
-            "target_20pct": float(s.get("target_20pct") or 1.2),
-            "target_mega": float(s.get("target_mega") or 1.5),
-            "price": float(s.get("entry_price") or 1.0)
-        })
-
-    for m in mined_megas:
-        sym = m.get("symbol", "")
-        if sym in seen_syms:
-            continue
-        seen_syms.add(sym)
-        gain = float(m.get("peak_gain_pct") or m.get("max_gain_pct") or 85.0)
-        base_p = float(m.get("start_price") or m.get("base_price") or 1.0)
-        peak_p = float(m.get("peak_price") or (base_p * 1.8))
-        bubble_opps.append({
-            "symbol": sym,
-            "direction": "LONG",
-            "strategy_name": "💥 Master Mega-Pump Base Ignition",
-            "expected_move_pct": gain,
-            "risk_reward_ratio": 8.5,
-            "ai_confidence_pct": 96.0,
-            "entry_price": base_p,
-            "stop_loss": base_p * 0.92,
-            "target_10pct": base_p * 1.10,
-            "target_20pct": base_p * 1.25,
-            "target_mega": peak_p,
-            "price": base_p
-        })
-
-    # Add default top market movers if list is short
-    if len(bubble_opps) < 8:
-        default_movers = [
-            {"symbol": "PEPE/USDT", "direction": "LONG", "strategy_name": "👑 Candle King Geometry", "expected_move_pct": 145.0, "risk_reward_ratio": 9.2, "ai_confidence_pct": 97.5, "price": 0.0000095},
-            {"symbol": "SOL/USDT", "direction": "LONG", "strategy_name": "🏛️ Smart Money Concepts (SMC)", "expected_move_pct": 28.5, "risk_reward_ratio": 4.5, "ai_confidence_pct": 94.0, "price": 182.0},
-            {"symbol": "BTC/USDT", "direction": "LONG", "strategy_name": "⚡ Bollinger Squeeze Volatility Coil", "expected_move_pct": 18.0, "risk_reward_ratio": 3.8, "ai_confidence_pct": 95.0, "price": 82050.0},
-            {"symbol": "DOGE/USDT", "direction": "LONG", "strategy_name": "💥 Master Mega-Pump Base Ignition", "expected_move_pct": 72.0, "risk_reward_ratio": 6.8, "ai_confidence_pct": 93.5, "price": 0.185},
-            {"symbol": "ETH/USDT", "direction": "SHORT", "strategy_name": "🎯 ICT Inner Circle Trader", "expected_move_pct": -21.0, "risk_reward_ratio": 4.1, "ai_confidence_pct": 91.5, "price": 2405.0},
-            {"symbol": "SUI/USDT", "direction": "LONG", "strategy_name": "👑 Candle King Geometry", "expected_move_pct": 88.0, "risk_reward_ratio": 7.5, "ai_confidence_pct": 96.0, "price": 2.15},
-            {"symbol": "XRP/USDT", "direction": "SHORT", "strategy_name": "📊 Volume Spread Analysis (VSA)", "expected_move_pct": -16.5, "risk_reward_ratio": 3.2, "ai_confidence_pct": 89.5, "price": 0.52}
-        ]
-        for dm in default_movers:
-            if dm["symbol"] not in seen_syms:
-                seen_syms.add(dm["symbol"])
-                p = dm["price"]
-                dm["entry_price"] = p
-                dm["stop_loss"] = p * (0.95 if dm["direction"] == "LONG" else 1.05)
-                dm["target_10pct"] = p * (1.10 if dm["direction"] == "LONG" else 0.90)
-                dm["target_20pct"] = p * (1.20 if dm["direction"] == "LONG" else 0.80)
-                dm["target_mega"] = p * (1.80 if dm["direction"] == "LONG" else 0.50)
-                bubble_opps.append(dm)
-
-    # Bubble Map Selector
-    bubble_symbols = [b["symbol"] for b in bubble_opps]
-    current_selected = st.session_state.get("selected_symbol", bubble_symbols[0])
-    if current_selected not in bubble_symbols:
-        current_selected = bubble_symbols[0]
-
-    # 1. Render Authentic Crypto Bubbles Interactive Cloud
-    st.markdown("#### 🟢 **Live Market Crypto Bubbles Cloud (Crypto Bubbles Style)**")
-    st.caption("Dynamic institutional circular bubbles sized proportionally by **Win Rate Accuracy** & **Price Expansion Magnitude**. Massive bubbles represent 50%-500%+ Mega-Moves. Green = Long, Red = Short. White ring indicates active selection.")
-    render_crypto_bubbles_cloud(bubble_opps, selected_symbol=current_selected)
-
-    st.markdown("##### 🎯 **Interactive Bubble Selector (Click any coin to inspect strategy & detailed chart):**")
-    
-    # Interactive Bubble Selection Tiles with glowing badges
-    b_symbols_display = [f"{b['symbol']} ({b['expected_move_pct']:+.0f}%)" for b in bubble_opps[:10]]
-    sym_map = {f"{b['symbol']} ({b['expected_move_pct']:+.0f}%)": b["symbol"] for b in bubble_opps[:10]}
-    
-    selected_label = next((k for k, v in sym_map.items() if v == current_selected), b_symbols_display[0])
-    chosen_label = st.segmented_control(
-        "Opportunity Bubble",
-        options=b_symbols_display,
-        default=selected_label,
-        key="bubble_segmented_selector",
-        label_visibility="collapsed"
-    )
-    if chosen_label and chosen_label in sym_map and sym_map[chosen_label] != current_selected:
-        st.session_state.selected_symbol = sym_map[chosen_label]
-        st.session_state.chart_custom_title = sym_map[chosen_label]
-        st.rerun()
-
-    # Expandable Analytical Bubble Scatter Radar (Plotly)
-    with st.expander("📊 **View Analytical Risk/Reward Bubble Scatter Matrix (Plotly View)**", expanded=False):
-        fig_bubble = build_pro_bubble_map(bubble_opps, selected_symbol=current_selected)
-        st.plotly_chart(fig_bubble, width='stretch')
-
-    # Pre-loaded Selected Opportunity Details
-    chosen_opp = next((b for b in bubble_opps if b["symbol"] == current_selected), bubble_opps[0])
-
-    with st.container(border=True):
-        st.markdown(f"#### 👑 **Pre-Loaded High-Accuracy Strategy: `{chosen_opp.get('strategy_name', 'AI Dynamic Consensus')}`**")
-        st.caption(f"Active Opportunity for **{chosen_opp['symbol']}** ({chosen_opp['direction']}) • Structure Pre-Loaded on Candlestick Chart with Strategic Corridors.")
-
-        m_c1, m_c2, m_c3, m_c4, m_c5 = st.columns(5)
-        with m_c1:
-            render_metric_card("DIRECTION", chosen_opp["direction"], "Signal Bias", "text-green" if chosen_opp["direction"] == "LONG" else "text-red")
-        with m_c2:
-            render_metric_card("TARGET MOVE", f"{chosen_opp['expected_move_pct']:+.1f}%", "Calculated Expansion", "text-green" if chosen_opp["expected_move_pct"] >= 0 else "text-red")
-        with m_c3:
-            render_metric_card("RISK/REWARD", f"1:{chosen_opp['risk_reward_ratio']}", "Institutional Ratio", "text-gold")
-        with m_c4:
-            render_metric_card("AI CONFIDENCE", f"{chosen_opp['ai_confidence_pct']:.1f}%", "Dynamic Consensus", "text-cyan")
-        with m_c5:
-            render_metric_card("MARK PRICE", f"${chosen_opp.get('price', chosen_opp.get('entry_price', 0.0)):,.4f}", "Real-Time Mark", "text-cyan")
-
-    # Fetch and Render Candlestick Chart for Selected Bubble
-    tf_choice = st.segmented_control("Select Timeframe", ["15m", "1h", "4h", "1d"], default="15m", key="bubble_tf_choice")
-    with st.spinner(f"Loading {tf_choice} candlestick data and strategic overlays for {chosen_opp['symbol']}..."):
-        df_bubble = binance_client.fetch_ohlcv(chosen_opp["symbol"], timeframe=tf_choice, limit=120)
-        if df_bubble is not None and len(df_bubble) >= 15:
-            # Overlays dictionary
-            t_levels = {
-                "entry_price": chosen_opp.get("entry_price") or df_bubble["close"].iloc[-1],
-                "stop_loss": chosen_opp.get("stop_loss") or df_bubble["close"].iloc[-1] * 0.96,
-                "target_10pct": chosen_opp.get("target_10pct") or df_bubble["close"].iloc[-1] * 1.10,
-                "target_20pct": chosen_opp.get("target_20pct") or df_bubble["close"].iloc[-1] * 1.20,
-                "target_mega": chosen_opp.get("target_mega") or df_bubble["close"].iloc[-1] * 1.50
-            }
-
-            fig_pro = build_pro_candlestick_chart(
-                df=df_bubble,
-                symbol=chosen_opp["symbol"],
-                timeframe=tf_choice,
-                show_ema=True,
-                show_bollinger=True,
-                show_smc=True,
-                trade_levels=t_levels,
-                strategy_name=chosen_opp.get("strategy_name")
-            )
-            st.plotly_chart(fig_pro, width='stretch')
-        else:
-            st.warning(f"Could not load candle data for {chosen_opp['symbol']}.")
 
 # ---------------------------------------------------------------------
 # TAB: TARGETED & MATRIX STRATEGY BACKTESTING ENGINE
