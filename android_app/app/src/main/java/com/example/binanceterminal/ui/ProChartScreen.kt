@@ -149,7 +149,7 @@ fun ProChartScreen(
         // Screen Header
         item {
             Text(
-                text = "🔮 BUBBLE MAP PRO RADAR & CHART",
+                text = "📊 PRO CANDLESTICK CHART & STRATEGY ENGINE",
                 color = TextPrimary,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
@@ -157,66 +157,70 @@ fun ProChartScreen(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Dense Organic Cluster • Sized by Win Rate & Magnitude • Tap any bubble to load",
+                text = "Real-time institutional candlesticks • SMC order blocks • Target corridors • Dynamic R:R",
                 color = TextMuted,
                 fontSize = 10.sp
             )
         }
 
-        // 1. DENSE CRYPTO BUBBLES ORGANIC CLUSTER (CRYPTO BUBBLES STYLE)
+        // 1. Sleek Asset Selector Strip (Minimalist & Clean)
         item {
             Surface(
                 color = SurfaceDark,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(10.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text(
+                        text = "SELECT ASSET PAIR",
+                        color = TerminalCyan,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "🟢 LIVE CRYPTO BUBBLES CLOUD (${bubbleList.size} PAIRS)",
-                            color = TerminalCyan,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(text = "🟢 LONG", color = TerminalGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text(text = "🔴 SHORT", color = TerminalRed, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Staggered multi-row cluster (mirroring cryptobubbles.net)
-                    val chunkedBubbles = remember(bubbleList) {
-                        val rowCount = 3
-                        val perRow = max(1, (bubbleList.size + rowCount - 1) / rowCount)
-                        bubbleList.chunked(perRow)
-                    }
-
-                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        chunkedBubbles.forEachIndexed { rowIdx, rowItems ->
-                            Row(
-                                modifier = Modifier.padding(start = if (rowIdx % 2 == 1) 22.dp else 0.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        bubbleList.take(16).forEach { b ->
+                            val isSelected = b.symbol == symbol
+                            Surface(
+                                color = if (isSelected) TerminalCyan.copy(alpha = 0.2f) else SurfaceCard,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isSelected) TerminalCyan else CardBorder
+                                ),
+                                modifier = Modifier.clickable {
+                                    symbol = b.symbol
+                                    selectedStrategyName = b.strategyName
+                                }
                             ) {
-                                rowItems.forEach { b ->
-                                    CryptoBubbleItem(
-                                        bubble = b,
-                                        isSelected = b.symbol == symbol,
-                                        onClick = {
-                                            symbol = b.symbol
-                                            selectedStrategyName = b.strategyName
-                                        }
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = if (b.direction == "LONG") "🟢" else "🔴",
+                                        fontSize = 10.sp
+                                    )
+                                    Text(
+                                        text = b.symbol,
+                                        color = if (isSelected) Color.White else TextSecondary,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    Text(
+                                        text = "${if (b.expectedMovePct >= 0) "+" else ""}${b.expectedMovePct.toInt()}%",
+                                        color = if (b.direction == "LONG") TerminalGreen else TerminalRed,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
@@ -364,79 +368,6 @@ fun ProChartScreen(
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CryptoBubbleItem(
-    bubble: BubbleOpportunity,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val isLong = bubble.direction == "LONG"
-    val absMove = abs(bubble.expectedMovePct)
-
-    // Crypto Bubbles dynamic diameter scaling (50dp to 84dp for fluid cluster packing)
-    val accBonus = ((bubble.confidence - 80.0) / 20.0).coerceIn(0.0, 1.0)
-    val diameter = when {
-        absMove >= 50.0 -> (76 + (accBonus * 8)).dp  // 76-84dp
-        absMove >= 20.0 -> (62 + (accBonus * 6)).dp  // 62-68dp
-        else -> (50 + (accBonus * 4)).dp             // 50-54dp
-    }
-
-    val bubbleBg = if (isLong) {
-        if (isSelected) TerminalGreen else TerminalGreen.copy(alpha = 0.32f)
-    } else {
-        if (isSelected) TerminalRed else TerminalRed.copy(alpha = 0.32f)
-    }
-
-    val borderColor = if (isSelected) Color.White else (if (isLong) TerminalGreen else TerminalRed)
-
-    Surface(
-        modifier = Modifier
-            .size(diameter)
-            .clickable { onClick() },
-        shape = CircleShape,
-        color = bubbleBg,
-        shadowElevation = if (isSelected) 6.dp else 2.dp,
-        border = androidx.compose.foundation.BorderStroke(
-            if (isSelected) 2.5.dp else 1.dp,
-            borderColor
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = bubble.symbol.replace("/USDT", ""),
-                color = if (isSelected) BgDark else Color.White,
-                fontSize = if (absMove >= 50.0) 11.sp else 9.sp,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = FontFamily.Monospace,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-            Text(
-                text = "${if (bubble.expectedMovePct >= 0) "+" else ""}${String.format("%.0f", bubble.expectedMovePct)}%",
-                color = if (isSelected) BgDark else (if (isLong) TerminalGreen else TerminalRed),
-                fontSize = if (absMove >= 50.0) 10.sp else 8.sp,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
-            Text(
-                text = "${bubble.confidence.toInt()}%",
-                color = if (isSelected) BgDark.copy(alpha = 0.8f) else TextSecondary,
-                fontSize = 7.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                maxLines = 1
-            )
         }
     }
 }

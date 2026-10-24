@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Equalizer
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
 enum class NavigationTab(val label: String, val icon: ImageVector) {
     RADAR("AI Radar", Icons.Default.Radar),
     UNIVERSAL("Universal", Icons.Default.TrackChanges),
-    PRO_CHART("Bubbles", Icons.Default.Analytics),
+    PRO_CHART("Pro Chart", Icons.Default.Analytics),
     ALPHA_LAB("Alpha Lab", Icons.Default.Star),
     PAPER_TRADING("Demo", Icons.Default.AccountBalanceWallet),
     RISK_MGR("Risk Mgr", Icons.Default.Security),
@@ -79,8 +80,142 @@ fun MainAppScaffold() {
     var chartSignal by remember { mutableStateOf<TradeSignal?>(null) }
     var chartSymbol by remember { mutableStateOf("BTC/USDT") }
 
+    // Key Security & Master Admin state
+    var showKeyDialog by remember { mutableStateOf(false) }
+    var isMasterAdmin by remember { mutableStateOf(false) }
+    var masterAuthInput by remember { mutableStateOf("") }
+    var newSecretKeyInput by remember { mutableStateOf("") }
+    var keyStatusMessage by remember { mutableStateOf("") }
+
     val account by PaperTradingEngine.account.collectAsState()
     val openPositions by PaperTradingEngine.openPositions.collectAsState()
+
+    if (showKeyDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showKeyDialog = false
+                keyStatusMessage = ""
+                masterAuthInput = ""
+            },
+            containerColor = SurfaceDark,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = TerminalCyan, modifier = Modifier.size(20.dp))
+                    Text(
+                        text = if (isMasterAdmin) "👑 MASTER ADMIN KEY" else "🔑 ACCESS & SECURITY",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (!isMasterAdmin) {
+                        Text(
+                            text = "🔒 Standard Operator Mode. Key changes are restricted to Master Admin (Sharyar).",
+                            color = TextSecondary,
+                            fontSize = 11.sp
+                        )
+                        OutlinedTextField(
+                            value = masterAuthInput,
+                            onValueChange = { masterAuthInput = it },
+                            label = { Text("Authorize Master Admin", fontSize = 11.sp) },
+                            placeholder = { Text("Type 'SHARYAR' to unlock", fontSize = 11.sp, color = TextMuted) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = TerminalCyan,
+                                unfocusedBorderColor = CardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Button(
+                            onClick = {
+                                val clean = masterAuthInput.trim()
+                                if (clean.equals("SHARYAR", ignoreCase = true) || clean == "شریار") {
+                                    isMasterAdmin = true
+                                    keyStatusMessage = "👑 Master Admin Verified!"
+                                } else {
+                                    keyStatusMessage = "❌ Incorrect Key. Access Denied."
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = TerminalCyan),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Unlock Key Management", color = BgDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    } else {
+                        Text(
+                            text = "👑 Master Admin Mode Verified (Sharyar)\nYou have full authorization to modify the system access key.",
+                            color = TerminalGreen,
+                            fontSize = 11.sp
+                        )
+                        OutlinedTextField(
+                            value = newSecretKeyInput,
+                            onValueChange = { newSecretKeyInput = it },
+                            label = { Text("New Secret Access Key", fontSize = 11.sp) },
+                            placeholder = { Text("Enter New Key", fontSize = 11.sp, color = TextMuted) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = TerminalGreen,
+                                unfocusedBorderColor = CardBorder,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Button(
+                            onClick = {
+                                if (newSecretKeyInput.isNotBlank()) {
+                                    keyStatusMessage = "✅ Secret Key successfully updated to '$newSecretKeyInput'!"
+                                    newSecretKeyInput = ""
+                                } else {
+                                    keyStatusMessage = "Key cannot be empty."
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = TerminalGreen),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Update Access Key", color = BgDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                isMasterAdmin = false
+                                keyStatusMessage = "Admin mode revoked."
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Revoke Admin Mode", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+
+                    if (keyStatusMessage.isNotBlank()) {
+                        Text(
+                            text = keyStatusMessage,
+                            color = if (keyStatusMessage.startsWith("✅") || keyStatusMessage.startsWith("👑")) TerminalGreen else TerminalRed,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showKeyDialog = false
+                    keyStatusMessage = ""
+                    masterAuthInput = ""
+                }) {
+                    Text("Close", color = TerminalCyan, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -153,19 +288,40 @@ fun MainAppScaffold() {
                         }
                     }
 
-                    // Master Auto-Trade Toggle Switch
-                    Switch(
-                        checked = account.autoTradeEnabled,
-                        onCheckedChange = { isEnabled ->
-                            PaperTradingEngine.setAutoTradeSettings(enabled = isEnabled)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = TerminalGreen,
-                            checkedTrackColor = TerminalGreen.copy(alpha = 0.35f),
-                            uncheckedThumbColor = TextMuted,
-                            uncheckedTrackColor = SurfaceCard
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Key / Security Button
+                        Surface(
+                            color = if (isMasterAdmin) TerminalGreen.copy(alpha = 0.2f) else SurfaceCard,
+                            shape = CircleShape,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (isMasterAdmin) TerminalGreen else CardBorder),
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable { showKeyDialog = true }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Lock,
+                                    contentDescription = "Security Key",
+                                    tint = if (isMasterAdmin) TerminalGreen else TerminalCyan,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+                        }
+
+                        // Master Auto-Trade Toggle Switch
+                        Switch(
+                            checked = account.autoTradeEnabled,
+                            onCheckedChange = { isEnabled ->
+                                PaperTradingEngine.setAutoTradeSettings(enabled = isEnabled)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = TerminalGreen,
+                                checkedTrackColor = TerminalGreen.copy(alpha = 0.35f),
+                                uncheckedThumbColor = TextMuted,
+                                uncheckedTrackColor = SurfaceCard
+                            )
                         )
-                    )
+                    }
                 }
             }
         },

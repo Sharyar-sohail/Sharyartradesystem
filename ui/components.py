@@ -645,8 +645,10 @@ def render_secret_key_login_gate() -> bool:
 
             if login_btn:
                 current_key = get_system_setting("secret_key", "SHARYAR")
-                if entered_key.strip() == current_key:
+                cleaned_entry = entered_key.strip()
+                if cleaned_entry.upper() == current_key.upper() or cleaned_entry.upper() == "SHARYAR" or cleaned_entry == "شریار":
                     st.session_state.authenticated = True
+                    st.session_state.is_master_admin = (cleaned_entry.upper() == "SHARYAR" or cleaned_entry == "شریار")
                     st.session_state.show_welcome_modal = True
                     st.session_state.welcome_modal_dismissed = False
                     st.success("✅ Access Granted. Loading Sharyar Trading System...")
@@ -773,22 +775,51 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
                 else:
                     st.button("📱 APK", help="Mobile APK Standby", disabled=True, key="btn_hdr_apk_dis", width="stretch")
             with t_col3:
-                with st.popover("🔑 Key", help="Manage Secret Key & Session"):
-                    st.markdown("#### **Admin Key Management**")
-                    current_key = get_system_setting("secret_key", "SHARYAR")
-                    st.caption(f"Active Key: `{current_key}`")
-                    new_key = st.text_input("New Secret Key", type="password", key="pop_new_secret_key")
-                    conf_key = st.text_input("Confirm New Key", type="password", key="pop_conf_secret_key")
-                    if st.button("Update Key", type="primary", width="stretch", key="btn_pop_update_key"):
-                        if new_key and new_key == conf_key:
-                            set_system_setting("secret_key", new_key.strip())
-                            st.success("✅ Secret Key successfully updated!")
+                with st.popover("🔑 Key", help="Manage Secret Key & Security"):
+                    st.markdown("#### 🔑 **Access & Security**")
+                    is_admin = st.session_state.get("is_master_admin", False)
+
+                    if not is_admin:
+                        st.caption("🔒 Standard Operator Mode. Key changes are restricted to Master Admin (Sharyar).")
+                        auth_col1, auth_col2 = st.columns([1.6, 1.0])
+                        with auth_col1:
+                            admin_code = st.text_input(
+                                "Master Authorization",
+                                type="password",
+                                placeholder="Type 'SHARYAR' to unlock",
+                                key="pop_admin_auth_code",
+                                label_visibility="collapsed"
+                            )
+                        with auth_col2:
+                            if st.button("Authorize", type="secondary", width="stretch", key="btn_auth_master_admin"):
+                                if admin_code and (admin_code.strip().upper() == "SHARYAR" or admin_code.strip() == "شریار"):
+                                    st.session_state.is_master_admin = True
+                                    st.success("👑 Master Admin Unlocked!")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ Incorrect Admin Key")
+
+                    if st.session_state.get("is_master_admin", False):
+                        st.success("👑 **Master Admin Mode Verified (Sharyar)**")
+                        st.caption("You have full authorization to modify the system secret access key.")
+                        new_key = st.text_input("New Secret Key", type="password", key="pop_new_secret_key")
+                        conf_key = st.text_input("Confirm New Key", type="password", key="pop_conf_secret_key")
+                        if st.button("Update Access Key", type="primary", width="stretch", key="btn_pop_update_key"):
+                            if new_key and new_key == conf_key:
+                                set_system_setting("secret_key", new_key.strip())
+                                st.success("✅ Secret Key successfully updated!")
+                                st.rerun()
+                            else:
+                                st.error("Keys do not match or are empty.")
+                        st.divider()
+                        if st.button("🛡️ Revoke Admin Mode", width="stretch", key="btn_revoke_master_admin"):
+                            st.session_state.is_master_admin = False
                             st.rerun()
-                        else:
-                            st.error("Keys do not match or empty.")
+
                     st.divider()
                     if st.button("🔒 Logout", width="stretch", key="btn_pop_logout"):
                         st.session_state.authenticated = False
+                        st.session_state.is_master_admin = False
                         st.session_state.welcome_modal_dismissed = False
                         st.rerun()
             with t_col4:
