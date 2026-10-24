@@ -275,7 +275,7 @@ render_sharyar_system_header(trading_runner, stats, health)
 # ---------------------------------------------------------------------
 # 4. COMPACT TICKER & MINI-SPARKLINE HEADER STRIP (Zero Flickering)
 # ---------------------------------------------------------------------
-@st.fragment(run_every="8s")
+@st.fragment(run_every="15s")
 def render_top_live_market_strip_fragment():
     cur_lane = st.session_state.get("trading_lane", "crypto")
     is_fx = cur_lane in ["metals", "forex_metals"]
@@ -915,7 +915,7 @@ if trading_lane == "crypto":
             horizon_filter = st.selectbox("Setup Horizon", ["ALL", "🏆 90%+ Win Rate Only", "💥 50%-500% Mega-Moves Only", "⚡ Intraday Scalps"], key="crypto_horizon_filter")
 
         # LIVE SIGNALS STREAM FRAGMENT (Clean Minimalist Full-Width Layout)
-        @st.fragment(run_every="4s")
+        @st.fragment(run_every="12s")
         def render_crypto_live_signals_radar_stream_fragment(dir_flt: str, stat_flt: str, horiz_flt: str):
             signals_list = get_all_breakout_signals(limit=40)
             if not signals_list:
@@ -941,9 +941,11 @@ if trading_lane == "crypto":
                 return
 
             display_data = []
+            all_prices = binance_client.get_all_tickers()
             for s in filtered:
                 entry_p = float(s["entry_price"])
-                curr_p = binance_client.get_ticker_price(s["symbol"]) or entry_p
+                clean_sym = s["symbol"].replace("/", "").upper()
+                curr_p = all_prices.get(clean_sym) or binance_client.get_ticker_price(s["symbol"]) or entry_p
                 direction = s["direction"]
                 exp_move = float(s.get("expected_move_pct", 15.0))
                 ai_conf = float(s.get("ai_confidence_pct", 92.5))

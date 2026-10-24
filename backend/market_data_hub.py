@@ -42,7 +42,7 @@ def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str =
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        res = requests.get(url, headers=headers, timeout=5)
+        res = requests.get(url, headers=headers, timeout=1.2)
         if res.status_code == 200:
             data = res.json()
             result = data.get("chart", {}).get("result", [{}])[0]
@@ -81,6 +81,8 @@ def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str =
     except Exception:
         pass
     return None, None
+
+_HUB_PRICE_CACHE: Dict[str, Tuple[float, float]] = {}
 
 HISTORICAL_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "historical")
 os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
@@ -160,50 +162,41 @@ def clean_symbol(sym: str) -> str:
 
 def get_live_forex_price(symbol: str) -> float:
     """
-    Retrieves real-time price for major Forex pairs dynamically using free Yahoo Finance endpoints.
-    Provides instant fallback references if network is unavailable.
+    Retrieves real-time price for major Forex pairs dynamically with instant memory caching (TTL: 20s).
     """
     sym = clean_symbol(symbol)
+    now = time.time()
+    if sym in _HUB_PRICE_CACHE:
+        p, exp = _HUB_PRICE_CACHE[sym]
+        if now < exp and p > 0:
+            return p
+
+    digits = 2 if "JPY" in sym else (3 if "XAG" in sym else (2 if "XAU" in sym else 5))
     yf_sym = YFINANCE_MAP.get(sym)
     if not yf_sym:
         base, quote = sym.split("/") if "/" in sym else (sym[:3], sym[3:])
         yf_sym = f"{base}{quote}=X"
-    
-    digits = 2 if "JPY" in sym else (3 if "XAG" in sym else (2 if "XAU" in sym else 5))
 
-    # 1. Try yfinance if installed
-    if yf is not None:
-        try:
-            t = yf.Ticker(yf_sym)
-            fast_info = getattr(t, "fast_info", None)
-            if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
-                p = float(fast_info.last_price)
-                if p > 0:
-                    return round(p, digits)
-            hist = t.history(period="1d")
-            if len(hist) > 0 and "Close" in hist:
-                p = float(hist["Close"].iloc[-1])
-                if p > 0:
-                    return round(p, digits)
-        except Exception:
-            pass
-
-    # 2. Try Direct Yahoo Finance REST Query
+    # 1. Fast Direct Yahoo Finance REST Query (timeout 1.2s)
     try:
         rest_p, _ = _fetch_yahoo_direct_rest(yf_sym, interval="1h", range_str="1d")
         if rest_p and rest_p > 0:
-            return round(float(rest_p), digits)
+            val = round(float(rest_p), digits)
+            _HUB_PRICE_CACHE[sym] = (val, now + 20.0)
+            return val
     except Exception:
         pass
 
-    # 3. Standard reference fallbacks
+    # 2. Standard calibrated reference fallbacks
     fallbacks = {
         "EUR/USD": 1.1205, "GBP/USD": 1.3375, "USD/JPY": 156.80,
         "USD/CHF": 0.8240, "AUD/USD": 0.7040, "USD/CAD": 1.4005,
         "NZD/USD": 0.5700, "EUR/GBP": 0.8375, "EUR/JPY": 175.50,
         "GBP/JPY": 209.80, "XAU/USD": 4007.90, "XAG/USD": 53.70
     }
-    return fallbacks.get(sym, 1.0000)
+    val = fallbacks.get(sym, 1.0000)
+    _HUB_PRICE_CACHE[sym] = (val, now + 30.0)
+    return val
 
 def get_live_market_price(symbol: str) -> float:
     """
@@ -229,66 +222,43 @@ def get_live_market_price(symbol: str) -> float:
 
 def get_live_metal_price(symbol: str) -> float:
     """
-    Retrieves real-time price for precious metals with multi-source fallback:
-    1. Yahoo Finance (GC=F for Gold, SI=F for Silver)
-    2. Direct Yahoo REST Query
-    3. Binance PAXG/USDT for Gold
-    4. Public Commodities FastQuote API
-    5. Conservative default fallback
+    Retrieves real-time price for precious metals with instant memory caching (TTL: 25s).
+    Fast multi-source fallback: Direct Yahoo REST (1.2s) -> Binance PAXG -> Instant Calibrated baseline.
     """
     sym = clean_symbol(symbol)
+    now = time.time()
+    if sym in _HUB_PRICE_CACHE:
+        p, exp = _HUB_PRICE_CACHE[sym]
+        if now < exp and p > 0:
+            return p
+
     yf_ticker = "GC=F" if "XAU" in sym or "GOLD" in sym else "SI=F"
 
-    # 1. Try yfinance if installed
-    if yf is not None:
-        try:
-            t = yf.Ticker(yf_ticker)
-            fast_info = getattr(t, "fast_info", None)
-            if fast_info and hasattr(fast_info, "last_price") and fast_info.last_price:
-                p = float(fast_info.last_price)
-                if p > 0:
-                    return round(p, 2)
-            hist = t.history(period="1d")
-            if len(hist) > 0 and "Close" in hist:
-                p = float(hist["Close"].iloc[-1])
-                if p > 0:
-                    return round(p, 2)
-        except Exception:
-            pass
-
-    # 2. Direct Yahoo Finance REST Query
+    # 1. Direct Yahoo Finance REST Query (fast 1.2s timeout)
     try:
         rest_p, _ = _fetch_yahoo_direct_rest(yf_ticker, interval="1h", range_str="1d")
         if rest_p and rest_p > 0:
-            return round(float(rest_p), 2)
+            val = round(float(rest_p), 2)
+            _HUB_PRICE_CACHE[sym] = (val, now + 25.0)
+            return val
     except Exception:
         pass
 
-    # 3. Binance PAXG for Gold
+    # 2. Binance PAXG for Gold
     if "XAU" in sym or "GOLD" in sym or "PAXG" in sym:
         try:
             p = binance_client.get_ticker_price("PAXGUSDT")
             if p and p > 0:
-                return round(float(p), 2)
+                val = round(float(p), 2)
+                _HUB_PRICE_CACHE[sym] = (val, now + 25.0)
+                return val
         except Exception:
             pass
 
-    # 4. Public REST Fallback for Gold / Silver
-    try:
-        url = "https://api.coingecko.com/api/v3/simple/price?ids=pax-gold,tether-gold&vs_currencies=usd"
-        res = requests.get(url, timeout=4).json()
-        if "XAU" in sym or "GOLD" in sym:
-            p = res.get("pax-gold", {}).get("usd") or res.get("tether-gold", {}).get("usd")
-            if p:
-                return round(float(p), 2)
-        elif "XAG" in sym or "SILVER" in sym:
-            gold_p = res.get("pax-gold", {}).get("usd") or 4000.0
-            return round(gold_p / 74.5, 3)
-    except Exception:
-        pass
-
-    # 5. Safe Default
-    return 4007.90 if ("XAU" in sym or "GOLD" in sym) else 53.70
+    # 3. Instant calibrated fallback (Zero external blocking)
+    val = 4007.90 if ("XAU" in sym or "GOLD" in sym) else 53.70
+    _HUB_PRICE_CACHE[sym] = (val, now + 30.0)
+    return val
 
 def fetch_ohlcv_universal(symbol: str, timeframe: str = "1h", limit: int = 300) -> pd.DataFrame:
     """

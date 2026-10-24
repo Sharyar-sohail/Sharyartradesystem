@@ -75,7 +75,7 @@ def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str =
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        res = requests.get(url, headers=headers, timeout=5)
+        res = requests.get(url, headers=headers, timeout=1.2)
         if res.status_code == 200:
             data = res.json()
             result = data.get("chart", {}).get("result", [])
@@ -125,6 +125,14 @@ class ForexEngine:
     def __init__(self):
         self.market_leader = "XAU/USD"
         self._price_cache: Dict[str, Tuple[float, float]] = {}
+        self._cached_signals: List[Dict[str, Any]] = []
+        self._cached_signals_exp: float = 0.0
+        self._cached_board: List[Dict[str, Any]] = []
+        self._cached_board_exp: float = 0.0
+        self._cached_signals: List[Dict[str, Any]] = []
+        self._cached_signals_exp: float = 0.0
+        self._cached_board: List[Dict[str, Any]] = []
+        self._cached_board_exp: float = 0.0
 
     def get_monitored_pairs(self) -> List[str]:
         """Returns list of monitored Forex and Metals pairs."""
@@ -151,7 +159,7 @@ class ForexEngine:
         if not price or price <= 0:
             price = SYNTHETIC_FX_PRICES.get(clean_sym, 1.0000)
 
-        self._price_cache[clean_sym] = (price, now + 15.0) # Cache for 15s
+        self._price_cache[clean_sym] = (price, now + 25.0) # Cache for 25s
         return price
 
     def get_forex_and_metals_signals(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -160,6 +168,10 @@ class ForexEngine:
         using live price feeds with multi-strategy confluence (SMC, ICT, VSA, Volatility Coils).
         Includes complete MetaTrader 4/5 copy text formatting.
         """
+        now = time.time()
+        if pairs is None and self._cached_signals and now < self._cached_signals_exp:
+            return self._cached_signals
+
         target_pairs = pairs or FOREX_MAJOR_PAIRS
         signals = []
 
@@ -260,6 +272,9 @@ class ForexEngine:
                 "mt_copy_text": mt_copy
             })
 
+        if pairs is None:
+            self._cached_signals = signals
+            self._cached_signals_exp = time.time() + 20.0
         return signals
 
     def get_board_of_high(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -268,6 +283,10 @@ class ForexEngine:
         Highlights session high breaks, 24h peak liquidity pools, SMC high-probability setups,
         and institutional risk-reward expansion targets.
         """
+        now = time.time()
+        if pairs is None and self._cached_board and now < self._cached_board_exp:
+            return self._cached_board
+
         base_signals = self.get_forex_and_metals_signals(pairs)
         board = []
 
@@ -324,6 +343,9 @@ class ForexEngine:
             board.append(board_item)
 
         board.sort(key=lambda x: (1 if x["is_metal"] else 0, x["win_rate"]), reverse=True)
+        if pairs is None:
+            self._cached_board = board
+            self._cached_board_exp = time.time() + 20.0
         return board
 
     def get_metatrader_depth(self, symbol: str) -> Dict[str, Any]:

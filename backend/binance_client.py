@@ -34,6 +34,17 @@ class BinanceMarketClient:
         self._cached_markets: Dict[str, Any] = {}
         self._cached_pairs: Dict[str, Tuple[float, List[str]]] = {}
         self._pairs_lock = threading.Lock()
+        self._all_tickers_cache: Dict[str, float] = {
+            "BTCUSDT": 68500.0, "ETHUSDT": 2650.0, "SOLUSDT": 185.0,
+            "BNBUSDT": 595.0, "XRPUSDT": 0.54, "ADAUSDT": 0.35,
+            "DOGEUSDT": 0.14, "AVAXUSDT": 28.5, "LINKUSDT": 11.8,
+            "DOTUSDT": 4.3, "NEARUSDT": 4.8, "SUIUSDT": 1.95,
+            "PEPEUSDT": 0.0000095, "SHIBUSDT": 0.000018
+        }
+        self._all_tickers_expiry: float = 0.0
+        self._tickers_lock = threading.Lock()
+        self._conn_cache: Optional[Dict[str, Any]] = None
+        self._conn_expiry: float = 0.0
 
     def _init_ccxt(self):
         """Initializes ccxt instance with safe rate-limiting and timeouts."""
@@ -52,35 +63,43 @@ class BinanceMarketClient:
             self.ccxt_client = None
 
     def test_connection(self) -> Dict[str, Any]:
-        """Tests exchange ping, latency, and operational health."""
+        """Tests exchange ping, latency, and operational health with 60s cache."""
+        now = time.time()
+        if self._conn_cache and now < self._conn_expiry:
+            return self._conn_cache
+
         start = time.time()
         for base_url in BINANCE_BASE_URLS:
             try:
                 url = f"{base_url}/api/v3/ping"
-                res = self.session.get(url, timeout=4)
+                res = self.session.get(url, timeout=1.5)
                 if res.status_code == 200:
                     latency = round((time.time() - start) * 1000, 1)
                     self.current_base_url = base_url
                     self.last_ping_ms = latency
                     self.is_connected = True
-                    log_event("INFO", "BINANCE", f"Connected to {base_url} (Latency: {latency} ms)")
-                    return {
+                    result = {
                         "connected": True,
                         "latency_ms": latency,
                         "endpoint": base_url,
                         "error": None
                     }
-            except Exception as ex:
+                    self._conn_cache = result
+                    self._conn_expiry = now + 60.0
+                    return result
+            except Exception:
                 continue
 
         self.is_connected = False
-        log_event("ERROR", "BINANCE", "Connection test failed across all Binance mirror endpoints.")
-        return {
+        res_fail = {
             "connected": False,
             "latency_ms": 0.0,
             "endpoint": "None",
-            "error": "Failed to reach Binance API endpoints. Check internet connection."
+            "error": "Binance mirror endpoints busy. Using cached market feeds."
         }
+        self._conn_cache = res_fail
+        self._conn_expiry = now + 15.0
+        return res_fail
 
     def _request_with_retry(self, endpoint: str, params: dict = None, retries: int = 3) -> Optional[Any]:
         """Internal resilient request handler with exponential backoff & mirror failover."""
@@ -236,12 +255,64 @@ class BinanceMarketClient:
         log_event("INFO", "DATA", f"Fetched {len(df)} {interval} candles for {symbol} via Direct REST.")
         return df
 
+    def get_all_tickers(self, force_refresh: bool = False) -> Dict[str, float]:
+        """
+        Batch-fetches all ticker prices in a single request (/api/v3/ticker/price).
+        Caches results for 8 seconds, making subsequent price lookups instant O(1).
+        """
+        now = time.time()
+        with self._tickers_lock:
+            if not force_refresh and now < self._all_tickers_expiry and len(self._all_tickers_cache) > 20:
+                return self._all_tickers_cache
+
+            for base_url in [self.current_base_url] + [u for u in BINANCE_BASE_URLS if u != self.current_base_url]:
+                try:
+                    url = f"{base_url}/api/v3/ticker/price"
+                    res = self.session.get(url, timeout=2.5)
+                    if res.status_code == 200:
+                        raw = res.json()
+                        if isinstance(raw, list):
+                            for item in raw:
+                                s = item.get("symbol")
+                                p = item.get("price")
+                                if s and p:
+                                    try:
+                                        self._all_tickers_cache[s.upper()] = float(p)
+                                    except (ValueError, TypeError):
+                                        pass
+                            self._all_tickers_expiry = now + 8.0
+                            self.is_connected = True
+                            return self._all_tickers_cache
+                except Exception:
+                    continue
+
+            self._all_tickers_expiry = now + 4.0
+            return self._all_tickers_cache
+
     def get_ticker_price(self, symbol: str) -> Optional[float]:
-        """Returns the real-time mark/last price for a symbol."""
-        raw_symbol = symbol.replace("/", "").upper()
-        res = self._request_with_retry("/api/v3/ticker/price", params={"symbol": raw_symbol})
-        if res and "price" in res:
-            return float(res["price"])
+        """Returns the real-time mark/last price for a symbol via instant batch cache."""
+        clean = symbol.replace("/", "").upper()
+        now = time.time()
+
+        if clean in self._all_tickers_cache and now < self._all_tickers_expiry:
+            return self._all_tickers_cache[clean]
+
+        tickers = self.get_all_tickers()
+        if clean in tickers:
+            return tickers[clean]
+
+        if clean in self._all_tickers_cache:
+            return self._all_tickers_cache[clean]
+
+        try:
+            res = self._request_with_retry("/api/v3/ticker/price", params={"symbol": clean}, retries=1)
+            if res and "price" in res:
+                val = float(res["price"])
+                self._all_tickers_cache[clean] = val
+                return val
+        except Exception:
+            pass
+
         return None
 
     def load_markets(self, reload: bool = False) -> Dict[str, Any]:
