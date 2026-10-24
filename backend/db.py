@@ -121,9 +121,14 @@ def init_db():
                 exit_time TEXT NOT NULL,
                 pnl REAL NOT NULL,
                 pnl_pct REAL NOT NULL,
-                reason TEXT NOT NULL
+                reason TEXT NOT NULL,
+                ai_analysis TEXT DEFAULT ''
             )
         """)
+        try:
+            cursor.execute("ALTER TABLE paper_trades ADD COLUMN ai_analysis TEXT DEFAULT '';")
+        except Exception:
+            pass
 
         # Terminal Key-Value Settings
         cursor.execute("""
@@ -1034,6 +1039,19 @@ def set_system_setting(key: str, value: str) -> bool:
     except Exception as e:
         log_event("ERROR", "DB", f"Failed to set system setting '{key}': {e}")
         return False
+
+def get_recent_ai_trade_diagnoses(limit: int = 15) -> List[Dict[str, Any]]:
+    """Retrieves recent completed trades with AI SL/TP root cause analysis and self-correction logs."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM paper_trades ORDER BY id DESC LIMIT ?;", (limit,))
+        rows = [dict(r) for r in cursor.fetchall()]
+        conn.close()
+        return rows
+    except Exception as e:
+        log_event("WARNING", "DB", f"Failed to get recent AI trade diagnoses: {e}")
+        return []
 
 # Auto-initialize database on import
 init_db()

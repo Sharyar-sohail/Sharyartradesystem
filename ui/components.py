@@ -327,114 +327,6 @@ TERMINAL_CUSTOM_CSS = """
         background: #334155;
     }
 
-    /* Crypto Bubbles Interactive Visualizer */
-    .crypto-bubbles-container {
-        background: radial-gradient(circle at 50% 50%, #0d131f 0%, #06090e 100%);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 16px;
-        padding: 24px 16px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 18px;
-        min-height: 360px;
-        box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 8px 32px rgba(0, 0, 0, 0.5);
-        margin-bottom: 20px;
-        position: relative;
-        overflow: hidden;
-    }
-    .crypto-bubble {
-        border-radius: 50%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        cursor: pointer;
-        user-select: none;
-        transition: transform 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.28s ease, border-color 0.28s ease;
-        padding: 6px;
-        box-sizing: border-box;
-        position: relative;
-    }
-    .crypto-bubble:hover {
-        transform: scale(1.08) translateY(-4px);
-        z-index: 10;
-    }
-    .crypto-bubble.bubble-long {
-        background: radial-gradient(circle at 35% 30%, #00ffaa 0%, #00b368 45%, #05663b 80%, #022f1b 100%);
-        border: 2px solid #00ffaa;
-        box-shadow: 0 0 25px rgba(0, 255, 170, 0.45), inset 0 2px 6px rgba(255, 255, 255, 0.35);
-    }
-    .crypto-bubble.bubble-long:hover {
-        box-shadow: 0 0 35px rgba(0, 255, 170, 0.75), inset 0 2px 8px rgba(255, 255, 255, 0.5);
-    }
-    .crypto-bubble.bubble-short {
-        background: radial-gradient(circle at 35% 30%, #ff4d6d 0%, #d91438 45%, #7f0a1f 80%, #3d020d 100%);
-        border: 2px solid #ff4d6d;
-        box-shadow: 0 0 25px rgba(255, 77, 109, 0.45), inset 0 2px 6px rgba(255, 255, 255, 0.35);
-    }
-    .crypto-bubble.bubble-short:hover {
-        box-shadow: 0 0 35px rgba(255, 77, 109, 0.75), inset 0 2px 8px rgba(255, 255, 255, 0.5);
-    }
-    .crypto-bubble.selected {
-        border: 3.5px solid #ffffff !important;
-        box-shadow: 0 0 30px #ffffff, 0 0 50px rgba(56, 189, 248, 0.8) !important;
-        transform: scale(1.1) translateY(-6px);
-        z-index: 20;
-    }
-    .bubble-sym {
-        font-family: "JetBrains Mono", Consolas, monospace;
-        font-weight: 800;
-        color: #ffffff;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-        line-height: 1.1;
-    }
-    .bubble-pct {
-        font-weight: 900;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #ffffff;
-        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
-        line-height: 1.1;
-        margin: 2px 0;
-    }
-    .bubble-acc {
-        background: rgba(0, 0, 0, 0.5);
-        color: #f1f5f9;
-        font-size: 0.68rem;
-        font-weight: 700;
-        padding: 1px 6px;
-        border-radius: 10px;
-        font-family: "JetBrains Mono", monospace;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        margin-top: 2px;
-    }
-    .bubble-strat {
-        font-size: 0.62rem;
-        color: rgba(255, 255, 255, 0.85);
-        font-weight: 600;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 90%;
-        margin-top: 2px;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    }
-    .bubble-mega-badge {
-        position: absolute;
-        top: -6px;
-        background: linear-gradient(90deg, #c084fc, #ec4899);
-        color: #ffffff;
-        font-size: 0.60rem;
-        font-weight: 900;
-        padding: 1px 7px;
-        border-radius: 8px;
-        letter-spacing: 0.05em;
-        box-shadow: 0 2px 10px rgba(192, 132, 252, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-    }
-
     /* Ultra-Compact Top Market Metrics Strip (~34px height) */
     .cmc-compact-header-strip {
         background: rgba(13, 18, 28, 0.88);
@@ -494,93 +386,58 @@ TERMINAL_CUSTOM_CSS = """
         font-size: 0.8rem;
     }
 
-    /* Crypto Bubbles Card Widget (Side Panel & Grid) */
-    .crypto-bubbles-widget-container {
-        background: radial-gradient(circle at 50% 30%, #0d1422 0%, #06090f 100%);
-        border: 1px solid rgba(0, 229, 255, 0.28);
-        border-radius: 14px;
-        padding: 14px 12px;
-        box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.7), 0 6px 20px rgba(0, 0, 0, 0.5);
-    }
-    .bubble-cards-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 10px;
-        align-items: center;
-        justify-content: center;
-        max-height: 480px;
-        overflow-y: auto;
-        padding: 4px;
-    }
-    .bubble-card {
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 10px 6px;
-        box-sizing: border-box;
-        cursor: pointer;
-        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, border-color 0.2s ease;
-        position: relative;
-    }
-    .bubble-card:hover {
-        transform: scale(1.06) translateY(-2px);
-        z-index: 10;
-    }
-    .bubble-card-long {
-        background: radial-gradient(circle at 35% 30%, #00ffaa 0%, #00b368 45%, #05663b 85%, #022f1b 100%);
-        border: 1.5px solid #00ffaa;
-        box-shadow: 0 0 14px rgba(0, 255, 170, 0.35);
-    }
-    .bubble-card-short {
-        background: radial-gradient(circle at 35% 30%, #ff4d6d 0%, #d91438 45%, #7f0a1f 85%, #3d020d 100%);
-        border: 1.5px solid #ff4d6d;
-        box-shadow: 0 0 14px rgba(255, 77, 109, 0.35);
-    }
-    .bubble-card-mega {
-        border-width: 2px;
-        box-shadow: 0 0 20px rgba(192, 132, 252, 0.65), 0 0 12px #00ffaa;
-    }
-    .bubble-card-selected {
-        border: 2.5px solid #ffffff !important;
-        box-shadow: 0 0 25px #ffffff, 0 0 35px rgba(0, 229, 255, 0.8) !important;
-        transform: scale(1.08) translateY(-3px);
-    }
-    .b-card-sym {
-        font-family: "JetBrains Mono", Consolas, monospace;
-        font-weight: 800;
-        font-size: 0.88rem;
-        color: #ffffff;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        line-height: 1.1;
-    }
-    .b-card-pct {
-        font-family: "JetBrains Mono", Consolas, monospace;
-        font-weight: 900;
-        font-size: 1.05rem;
-        color: #ffffff;
-        text-shadow: 0 2px 5px rgba(0,0,0,0.9);
-        line-height: 1.15;
-        margin: 2px 0;
-    }
-    .b-card-acc {
-        font-size: 0.65rem;
-        font-weight: 700;
-        background: rgba(0, 0, 0, 0.45);
-        color: #e0f2fe;
-        padding: 1px 4px;
-        border-radius: 4px;
-        margin-bottom: 2px;
-    }
-    .b-card-strat {
-        font-size: 0.60rem;
-        color: rgba(255, 255, 255, 0.85);
-        max-width: 90%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    /* Fully Responsive Mobile-First & Vertical Stacking Overrides (Zero Text Clipping) */
+    @media (max-width: 768px) {
+        .stMainBlockContainer {
+            padding-left: 0.4rem !important;
+            padding-right: 0.4rem !important;
+            padding-top: 0.6rem !important;
+            max-width: 100% !important;
+        }
+        div[data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            margin-bottom: 8px !important;
+        }
+        div[data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+        }
+        [data-testid="stSegmentedControl"] {
+            width: 100% !important;
+            overflow-x: auto !important;
+            justify-content: flex-start !important;
+            padding: 4px 6px !important;
+            border-radius: 14px !important;
+        }
+        [data-testid="stSegmentedControl"] button {
+            padding: 5px 8px !important;
+            font-size: 0.72rem !important;
+            white-space: nowrap !important;
+        }
+        .metric-card {
+            padding: 10px 12px !important;
+            min-height: auto !important;
+            margin-bottom: 6px !important;
+        }
+        .metric-card .card-value {
+            font-size: 1.1rem !important;
+        }
+        .cmc-compact-header-strip {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 4px !important;
+            padding: 6px 10px !important;
+        }
+        .stMarkdown, p, span, div {
+            word-break: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+        table, .stDataFrame {
+            width: 100% !important;
+            overflow-x: auto !important;
+        }
     }
 </style>
 """
@@ -659,54 +516,80 @@ def render_secret_key_login_gate() -> bool:
 
     return False
 
-@st.dialog("⚡ Welcome to Sharyar Trading System", width="large")
-def render_welcome_modal():
+def render_role_selection_welcome_screen():
     """
-    Renders an institutional welcome overlay introducing Sharyar Trading System.
-    Users must explicitly dismiss this modal before accessing the live trading tools and charts.
+    Renders an institutional, responsive Role Selection Welcome Screen (Requirement 3).
+    Allows the user to select their dedicated trading specialization:
+    - 🚀 Crypto Quantitative Trader
+    - 🪙 Gold & Metals Institutional Trader
     """
     st.markdown(
-        "<div style='font-size:1.15rem; font-weight:800; color:#FFFFFF; margin-bottom:8px;'>"
-        "Institutional AI Multi-Strategy & Mega-Move Execution Terminal"
+        "<div style='display:flex; justify-content:center; align-items:center; margin-top:2vh; margin-bottom:16px;'>"
+        "<div style='background:rgba(15,23,42,0.95); border:1px solid rgba(0,229,255,0.3); border-radius:24px; padding:28px 32px; width:100%; max-width:860px; box-shadow:0 15px 45px rgba(0,0,0,0.8), 0 0 25px rgba(0,229,255,0.15); text-align:center;'>"
+        "<div style='font-size:2.4rem; margin-bottom:6px;'>⚡</div>"
+        "<div style='font-size:1.75rem; font-weight:900; letter-spacing:0.04em; color:#FFFFFF; margin-bottom:4px;'>WELCOME TO SHARYAR TRADING SYSTEM</div>"
+        "<div style='font-size:0.85rem; color:#00E5FF; font-weight:700; letter-spacing:0.06em; margin-bottom:12px;'>INSTITUTIONAL QUANTITATIVE TERMINAL & 24/7 AI CONSENSUS CORE</div>"
+        "<div style='font-size:0.90rem; color:#cbd5e1; max-width:680px; margin:0 auto 18px auto; line-height:1.5;'>"
+        "Select your primary quantitative trading specialization to configure your canvas, live market feeds, indicators, and execution engines:"
         "</div>"
-        "<div style='font-size:0.88rem; color:#cbd5e1; line-height:1.6; margin-bottom:14px;'>"
-        "Welcome to the <b>Sharyar Trading System</b>. This multi-platform quant terminal continuously analyzes global markets "
-        "(Crypto, Gold, Silver, Forex, and Equities) using institutional price action mechanics and recursive self-learning AI."
+        "</div>"
         "</div>",
         unsafe_allow_html=True
     )
 
-    c1, c2 = st.columns(2)
-    with c1:
+    col1, col2 = st.columns(2)
+    with col1:
         with st.container(border=True):
-            st.markdown("##### 🏛️ **10 Global Historical Strategies**")
-            st.caption(
-                "• **Smart Money Concepts (SMC):** Order blocks, liquidity sweeps, FVG mitigations.\n"
-                "• **ICT Methodologies:** Killzones, Judas swings, MSS structural breaks.\n"
-                "• **Wyckoff VSA:** Volume spread absorption & institutional accumulation.\n"
-                "• **Bollinger Squeezes & Coils:** Volatility contraction breakout triggers.\n"
-                "• **Proprietary AI Consensus:** Multi-model weighted probabilistic confidence."
+            st.markdown(
+                "<div style='text-align:center; padding:10px 0;'>"
+                "<div style='font-size:2.2rem; margin-bottom:6px;'>🚀</div>"
+                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Crypto Quantitative Trader</div>"
+                "<div style='font-size:0.75rem; color:#00E5FF; font-weight:700; margin-bottom:12px;'>BITCOIN, ETHEREUM, SOLANA & ALTCOIN MEGA-MOVES</div>"
+                "</div>",
+                unsafe_allow_html=True
             )
-    with c2:
-        with st.container(border=True):
-            st.markdown("##### 🛡️ **Capital Protection & Mega-Moves**")
-            st.caption(
-                "• **1:1 R:R Breakeven Ratchet:** Moves Stop-Loss to Breakeven upon 1R hit.\n"
-                "• **Smart Reversal Alerts:** Real-time push alert if profit decays >= 35%.\n"
-                "• **Universal Asset Scope:** Input any symbol (Crypto, Metals, Forex, Stocks).\n"
-                "• **100% Cross-Platform Parity:** Synchronized Web & Android Mobile App.\n"
-                "• **Historical Trade Search:** Full database query archive with CSV export."
+            st.markdown(
+                "• **90%+ Live Breakout Signals:** Real-time tracking with dynamic TP1, TP2, and Mega Targets.\n"
+                "• **Automated Demo Engine:** 1:1 Breakeven ratchet & AI SL/TP root cause analysis self-correction.\n"
+                "• **Cross-Exchange Coverage:** Real-time depth across Binance, Bybit, Bitget, and Gate.io.\n"
+                "• **Universal Coin Engine:** Search & scan any crypto token or meme asset globally."
             )
+            st.write("")
+            if st.button("🚀 Launch Crypto Trader Mode", type="primary", width="stretch", key="btn_welcome_select_crypto"):
+                st.session_state.trading_lane = "crypto"
+                st.session_state.show_welcome_modal = False
+                st.session_state.welcome_modal_dismissed = True
+                st.rerun()
 
-    st.divider()
-    c_btn1, c_btn2 = st.columns([1.6, 1.0], vertical_alignment="center")
-    with c_btn1:
-        st.info("💡 **Navigation:** Use the floating macOS Dock to jump between Radar, Universal Engine, Alpha Lab, and Risk Manager.")
-    with c_btn2:
-        if st.button("🚀 Enter Live Trading Canvas", type="primary", width="stretch", key="btn_close_welcome_dialog"):
-            st.session_state.welcome_modal_dismissed = True
-            st.session_state.show_welcome_modal = False
-            st.rerun()
+    with col2:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='text-align:center; padding:10px 0;'>"
+                "<div style='font-size:2.2rem; margin-bottom:6px;'>🪙</div>"
+                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Gold & Metals Trader</div>"
+                "<div style='font-size:0.75rem; color:#FFD700; font-weight:700; margin-bottom:12px;'>GOLD (XAU/USD), SILVER (XAG/USD) & COMMODITIES</div>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "• **SMC & ICT Killzone Signals:** Order blocks, London/NY sweeps & Fair Value Gap mitigations.\n"
+                "• **Instant Copy-Paste Formatter:** Ready for 1-click execution in MT4, MT5, TradingView & Telegram.\n"
+                "• **Automated Backtesting:** Walk-forward stop-loss minimizer to eliminate whipsaws.\n"
+                "• **Multi-Timeframe Candlestick Charts:** Precise institutional entry/exit corridors & Fib levels."
+            )
+            st.write("")
+            if st.button("🪙 Launch Gold & Metals Mode", type="primary", width="stretch", key="btn_welcome_select_metals"):
+                st.session_state.trading_lane = "metals"
+                st.session_state.show_welcome_modal = False
+                st.session_state.welcome_modal_dismissed = True
+                st.rerun()
+
+    st.markdown(
+        "<div style='text-align:center; margin-top:20px; font-size:0.82rem; color:#94a3b8;'>"
+        "💡 <i>Tip: You can seamlessly switch between Crypto and Metals modes at any time via the top command bar.</i>"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str, Any]):
     """
@@ -723,21 +606,24 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
     open_positions = getattr(runner, "open_positions", {})
     trade_size = getattr(runner, "trade_size_usd", 1.0)
 
+    cur_lane = st.session_state.get("trading_lane", "crypto")
+    lane_badge = '<span style="background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🚀 CRYPTO TRADER</span>' if cur_lane == "crypto" else '<span style="background:rgba(255,215,0,0.18); border:1px solid #ffd700; color:#ffd700; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🪙 GOLD & METALS</span>'
+
     with st.container(border=True):
-        h_left, h_center, h_right = st.columns([1.8, 1.3, 1.2], vertical_alignment="center")
+        h_left, h_center, h_right = st.columns([1.8, 1.3, 1.3], vertical_alignment="center")
         with h_left:
             st.markdown(
-                "<div style='display:flex; align-items:center; gap:12px;'>"
-                "<div style='background:rgba(0,229,255,0.15); border:1px solid rgba(0,229,255,0.4); border-radius:12px; padding:6px 10px; font-size:1.4rem;'>⚡</div>"
-                "<div>"
-                "<div style='font-size:1.25rem; font-weight:900; letter-spacing:0.04em; color:#FFFFFF; line-height:1.2;'>"
-                "SHARYAR TRADING SYSTEM"
-                "</div>"
-                "<div style='font-size:0.75rem; color:#00E5FF; font-weight:600; letter-spacing:0.05em;'>"
-                "AUTONOMOUS AI MULTI-STRATEGY & MEGA-MOVE ENGINE"
-                "</div>"
-                "</div>"
-                "</div>",
+                f"<div style='display:flex; align-items:center; gap:12px;'>"
+                f"<div style='background:rgba(0,229,255,0.15); border:1px solid rgba(0,229,255,0.4); border-radius:12px; padding:6px 10px; font-size:1.4rem;'>⚡</div>"
+                f"<div>"
+                f"<div style='font-size:1.25rem; font-weight:900; letter-spacing:0.04em; color:#FFFFFF; line-height:1.2; display:flex; align-items:center; flex-wrap:wrap;'>"
+                f"SHARYAR TRADING SYSTEM {lane_badge}"
+                f"</div>"
+                f"<div style='font-size:0.75rem; color:#00E5FF; font-weight:600; letter-spacing:0.05em;'>"
+                f"AUTONOMOUS AI MULTI-STRATEGY & MEGA-MOVE ENGINE"
+                f"</div>"
+                f"</div>"
+                f"</div>",
                 unsafe_allow_html=True
             )
         with h_center:
@@ -754,7 +640,13 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
                 st.caption("PORTFOLIO SLOTS")
                 st.markdown(f"**`{len(open_positions)}/15`** <span style='font-size:0.75rem; color:#FFB300;'>(${len(open_positions)*trade_size:.0f})</span>", unsafe_allow_html=True)
         with h_right:
-            t_col1, t_col2, t_col3, t_col4 = st.columns([1.1, 1.0, 0.7, 0.5], vertical_alignment="center")
+            t_col_lane, t_col1, t_col2, t_col3, t_col4 = st.columns([1.1, 0.9, 0.8, 0.6, 0.5], vertical_alignment="center")
+            with t_col_lane:
+                target_lane = "metals" if cur_lane == "crypto" else "crypto"
+                btn_lane_text = "🪙 Metals" if cur_lane == "crypto" else "🚀 Crypto"
+                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help="Switch between Crypto and Gold/Metals trading specialization", width="stretch"):
+                    st.session_state.trading_lane = target_lane
+                    st.rerun()
             with t_col1:
                 auto_val = st.toggle("⚡ Auto", value=auto_trade, key="header_master_auto_toggle", help="Toggle Autonomous Demo Execution")
                 if auto_val != auto_trade:
@@ -867,24 +759,35 @@ def render_apk_distribution_card():
         with c_apk2:
             st.info(f"📲 **Direct Mobile Install:** Click the button to download the APK directly on your phone, or open `http://{lan_ip}:8080/download` in your mobile browser.")
 
-def render_macos_dock_navigation(current_selection: str = "⚡ Radar & Signals") -> str:
+def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & Tracking", trading_lane: str = "crypto") -> str:
     """
     Renders an interactive macOS-style floating dock navigation bar with icons.
     Provides instant one-click switching across all trading tools and views.
+    Configured dynamically based on active trading lane (Crypto vs Gold & Metals).
     """
-    tabs = [
-        "⚡ Radar & Signals",
-        "🎯 Universal Engine",
-        "🏆 Alpha Lab",
-        "🛡️ Risk Manager",
-        "💼 Portfolio & Trades",
-        "🧬 AI & Evolution",
-        "🚀 Mega-Moves",
-        "🌐 Cross-Exchange",
-        "📦 Batch Analytics",
-        "📈 Pine Script TV",
-        "⚙️ System Logs"
-    ]
+    if trading_lane == "metals":
+        tabs = [
+            "🪙 Metals Command & Copy",
+            "📈 Metals Live Chart",
+            "📊 Backtest & SL Minimizer",
+            "🤖 Automated Metals Demo",
+            "🧬 24/7 AI Lab",
+            "💼 Portfolio & History",
+            "⚙️ System Logs"
+        ]
+    else:
+        tabs = [
+            "📡 Live Signals & Tracking",
+            "🤖 Auto-Trading & Demo Engine",
+            "🌐 Universal Engine",
+            "🧪 Alpha Lab",
+            "🧬 24/7 AI Lab",
+            "💥 Mega-Moves",
+            "🔄 Cross-Exchange",
+            "💼 Portfolio & History",
+            "⚙️ System Logs"
+        ]
+
     if current_selection not in tabs:
         current_selection = tabs[0]
         
@@ -894,7 +797,7 @@ def render_macos_dock_navigation(current_selection: str = "⚡ Radar & Signals")
         default=current_selection,
         selection_mode="single",
         label_visibility="collapsed",
-        key="macos_dock_nav"
+        key=f"macos_dock_nav_{trading_lane}"
     )
     return selected or current_selection
 
@@ -1041,61 +944,6 @@ def render_terminal_logs(logs: List[Dict[str, Any]]):
         html_lines.append(line_html)
     html_lines.append('</div>')
     st.markdown("".join(html_lines), unsafe_allow_html=True)
-
-def render_crypto_bubbles_cloud(opportunities: List[Dict[str, Any]], selected_symbol: Optional[str] = None):
-    """
-    Renders an authentic, professional Crypto Bubbles style circular interactive interface.
-    - Sized dynamically based on accuracy (win rate) and expected price move magnitude.
-    - Vibrant glowing emerald green bubbles for Long setups, deep crimson red for Short setups.
-    - Prominently displays coin ticker, % target move, win rate, and strategy badge.
-    - Selected bubble renders with an institutional white glowing halo.
-    """
-    if not opportunities:
-        st.info("Scanning live market universe for opportunity bubbles...")
-        return
-
-    html_parts = ['<div class="crypto-bubbles-container">']
-    for opp in opportunities:
-        sym = opp.get("symbol", "").replace("/USDT", "")
-        full_sym = opp.get("symbol", "")
-        direction = opp.get("direction", "LONG").upper()
-        move = float(opp.get("expected_move_pct") or 20.0)
-        abs_move = abs(move)
-        conf = float(opp.get("ai_confidence_pct") or opp.get("confidence") or 92.0)
-        strat = opp.get("strategy_name", opp.get("strategy", "AI Consensus"))
-
-        # Dynamic Diameter Scaling Formula based on both Move Magnitude & Win Rate Accuracy
-        if abs_move >= 50.0:
-            # Massive Mega-Move (50% to 500%+)
-            diam = min(int(140 + (abs_move - 50.0) * 0.25 + (conf - 80.0) * 1.4), 210)
-            sym_fs = 1.15
-            pct_fs = 1.45
-            is_mega = True
-        elif abs_move >= 20.0:
-            # Medium Expansion (20% to 50%)
-            diam = int(105 + (abs_move - 20.0) * 0.9 + (conf - 80.0) * 0.8)
-            sym_fs = 0.95
-            pct_fs = 1.15
-            is_mega = False
-        else:
-            # Small Intraday Setup (10% to 20%)
-            diam = int(82 + (abs_move - 10.0) * 1.2 + (conf - 80.0) * 0.5)
-            sym_fs = 0.82
-            pct_fs = 0.95
-            is_mega = False
-
-        cls_dir = "bubble-long" if direction == "LONG" else "bubble-short"
-        is_sel = (selected_symbol and (selected_symbol == full_sym or selected_symbol.replace("/", "") == full_sym.replace("/", "")))
-        cls_sel = " selected" if is_sel else ""
-
-        sign = "+" if move >= 0 else ""
-        mega_badge = '<div class="bubble-mega-badge">💥 MEGA</div>' if is_mega else ''
-
-        bubble_html = f'<div class="crypto-bubble {cls_dir}{cls_sel}" style="width: {diam}px; height: {diam}px;">{mega_badge}<div class="bubble-sym" style="font-size: {sym_fs}rem;">{sym}</div><div class="bubble-pct" style="font-size: {pct_fs}rem;">{sign}{move:.1f}%</div><div class="bubble-acc">{conf:.0f}% ACC</div><div class="bubble-strat" title="{strat}">{strat}</div></div>'
-        html_parts.append(bubble_html)
-
-    html_parts.append('</div>')
-    st.markdown("".join(html_parts), unsafe_allow_html=True)
 
 def build_pro_candlestick_chart(
     df: pd.DataFrame,
@@ -1635,99 +1483,6 @@ def render_cmc_top_ticker_ribbon(metrics: Optional[Dict[str, Any]] = None):
     """
     st.markdown(html, unsafe_allow_html=True)
 
-def render_crypto_bubbles_side_widget(opportunities: Optional[List[Dict[str, Any]]] = None, selected_symbol: Optional[str] = None):
-    """
-    Renders a dedicated side panel / widget featuring a 'Crypto Bubbles' card layout.
-    - Consists of dynamic-sized cards displaying real-time gain/loss percentages for various coins.
-    - Strictly prioritizes BTC and Gold at the absolute top of the cluster.
-    - Sized dynamically based on move magnitude and win rate (green for longs, red for shorts).
-    - Tapping/clicking any card allows instant selection of that asset.
-    """
-    universe = opportunities or [
-        {"symbol": "BTC/USDT", "direction": "LONG", "strategy": "⚡ Bollinger Squeeze Volatility Coil", "expected_move_pct": 18.0, "confidence": 95.0, "price": 68450.0},
-        {"symbol": "XAU/USD", "direction": "LONG", "strategy": "📊 Wyckoff VSA Absorption", "expected_move_pct": 14.2, "confidence": 96.0, "price": 2748.50},
-        {"symbol": "PEPE/USDT", "direction": "LONG", "strategy": "👑 Candle King Geometry", "expected_move_pct": 145.0, "confidence": 97.5, "price": 0.0000104},
-        {"symbol": "SOL/USDT", "direction": "LONG", "strategy": "🏛️ Smart Money Concepts (SMC)", "expected_move_pct": 28.5, "confidence": 94.0, "price": 184.20},
-        {"symbol": "DOGE/USDT", "direction": "LONG", "strategy": "💥 Master Mega-Pump Base Ignition", "expected_move_pct": 72.0, "confidence": 93.5, "price": 0.148},
-        {"symbol": "ETH/USDT", "direction": "SHORT", "strategy": "🎯 ICT Inner Circle Trader", "expected_move_pct": -21.0, "confidence": 91.5, "price": 2540.10},
-        {"symbol": "SUI/USDT", "direction": "LONG", "strategy": "👑 Candle King Geometry", "expected_move_pct": 88.0, "confidence": 96.0, "price": 2.14},
-        {"symbol": "XRP/USDT", "direction": "SHORT", "strategy": "📊 Volume Spread Analysis (VSA)", "expected_move_pct": -16.5, "confidence": 89.5, "price": 0.53},
-        {"symbol": "ARB/USDT", "direction": "LONG", "strategy": "⚡ Bollinger Squeeze Breakout", "expected_move_pct": 24.0, "confidence": 93.0, "price": 0.58},
-        {"symbol": "AERO/USDT", "direction": "LONG", "strategy": "👑 Candle King Geometry", "expected_move_pct": 55.0, "confidence": 95.5, "price": 1.25},
-        {"symbol": "NEAR/USDT", "direction": "LONG", "strategy": "🏛️ Smart Money Concepts (SMC)", "expected_move_pct": 32.0, "confidence": 92.5, "price": 5.25},
-        {"symbol": "AVAX/USDT", "direction": "SHORT", "strategy": "📊 Volume Spread Analysis (VSA)", "expected_move_pct": -19.0, "confidence": 90.0, "price": 28.40},
-        {"symbol": "LINK/USDT", "direction": "LONG", "strategy": "⚡ Bollinger Squeeze Volatility Coil", "expected_move_pct": 22.0, "confidence": 93.5, "price": 11.80},
-        {"symbol": "INJ/USDT", "direction": "LONG", "strategy": "👑 Candle King Geometry", "expected_move_pct": 38.0, "confidence": 95.0, "price": 21.40},
-        {"symbol": "XAG/USD", "direction": "LONG", "strategy": "🔍 SMC Liquidity Sweep", "expected_move_pct": 16.5, "confidence": 94.0, "price": 33.70}
-    ]
-
-    # Ensure BTC is #0 and Gold is #1 strictly
-    def bubble_sort_key(b):
-        sym = b.get("symbol", "").upper()
-        if "BTC" in sym:
-            return 0
-        if "XAU" in sym or "GOLD" in sym:
-            return 1
-        return 2
-
-    sorted_universe = sorted(universe, key=bubble_sort_key)
-
-    st.markdown(
-        "<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;'>"
-        "<div style='font-size:0.92rem; font-weight:800; color:#00e5ff; display:flex; align-items:center; gap:6px;'>"
-        "<span>🟢</span> <b>LIVE CRYPTO BUBBLES RADAR</b>"
-        "</div>"
-        "<div style='font-size:0.72rem; color:#94a3b8; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.25); border-radius:12px; padding:2px 8px;'>"
-        f"{len(sorted_universe)} Active Pairs"
-        "</div>"
-        "</div>",
-        unsafe_allow_html=True
-    )
-
-    card_items = []
-    for b in sorted_universe:
-        sym = b.get("symbol", "").replace("/USDT", "").replace("/USD", "")
-        full_sym = b.get("symbol", "")
-        direction = b.get("direction", "LONG").upper()
-        move = float(b.get("expected_move_pct") or 15.0)
-        abs_move = abs(move)
-        conf = float(b.get("confidence") or b.get("ai_confidence_pct") or 92.0)
-        strat = b.get("strategy", b.get("strategy_name", "AI Consensus"))
-
-        is_mega = abs_move >= 50.0
-        is_long = direction == "LONG"
-        cls_dir = "bubble-card-long" if is_long else "bubble-card-short"
-        cls_mega = " bubble-card-mega" if is_mega else ""
-        
-        is_sel = (selected_symbol and (selected_symbol == full_sym or selected_symbol.replace("/", "") == full_sym.replace("/", "")))
-        cls_sel = " bubble-card-selected" if is_sel else ""
-
-        sign = "+" if move >= 0 else ""
-        mega_badge = '<div class="bubble-mega-badge">💥 MEGA</div>' if is_mega else ''
-
-        # Dynamic height/padding
-        card_min_h = "105px" if is_mega else ("92px" if abs_move >= 20.0 else "80px")
-
-        card_html = (
-            f'<div class="bubble-card {cls_dir}{cls_mega}{cls_sel}" style="min-height:{card_min_h};">'
-            f'{mega_badge}'
-            f'<div class="b-card-sym">{sym}</div>'
-            f'<div class="b-card-pct">{sign}{move:.1f}%</div>'
-            f'<div class="b-card-acc">{conf:.0f}% ACC</div>'
-            f'<div class="b-card-strat" title="{strat}">{strat}</div>'
-            f'</div>'
-        )
-        card_items.append(card_html)
-
-    widget_html = (
-        f'<div class="crypto-bubbles-widget-container">'
-        f'<div class="bubble-cards-grid">'
-        f'{"".join(card_items)}'
-        f'</div>'
-        f'</div>'
-    )
-    st.markdown(widget_html, unsafe_allow_html=True)
-
 def build_sparkline_figure(prices: List[float], is_positive: bool = True) -> go.Figure:
     """Creates an ultra-compact, lightweight Plotly mini sparkline without axes or dead margins."""
     fig = go.Figure()
@@ -1799,7 +1554,7 @@ def render_smart_alerts_banner(active_alerts: List[Dict[str, Any]], runner=None)
     if not active_alerts:
         return
 
-    for alert in active_alerts:
+    for idx, alert in enumerate(active_alerts):
         sym = alert.get("symbol", "")
         direction = alert.get("direction", "LONG")
         msg = alert.get("message", "")
@@ -1814,7 +1569,7 @@ def render_smart_alerts_banner(active_alerts: List[Dict[str, Any]], runner=None)
                 st.caption(f"Detected at: `{t}` | Current PnL: `+{pnl:.2f}%` | Capital Protection: `SL Ratcheted to Breakeven`")
             with a_col2:
                 st.write("")
-                if st.button(f"⚡ Secure Profits & Exit `{sym}`", type="primary", key=f"btn_early_exit_{sym}", width="stretch"):
+                if st.button(f"⚡ Secure Profits & Exit `{sym}`", type="primary", key=f"btn_early_exit_{sym}_{idx}_{alert.get('id', idx)}", width="stretch"):
                     if runner is not None:
                         runner.manual_close_paper_position(sym, reason="Smart Early Exit (Secured Profits)")
                     from backend.db import dismiss_smart_alert
