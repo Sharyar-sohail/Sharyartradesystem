@@ -1,0 +1,25 @@
+[theme]
+base = "dark"
+primaryColor = "#00e5ff"
+backgroundColor = "#0b0e14"
+secondaryBackgroundColor = "#121824"
+textColor = "#ffffff"
+font = "sans serif"
+showWidgetBorder = true
+baseRadius = "0.5rem"
+buttonRadius = "0.5rem"
+paddingTop = "1rem"
+paddingBottom = "1.5rem"
+
+[theme.sidebar]
+backgroundColor = "#0c1018"
+secondaryBackgroundColor = "#121824"
+textColor = "#ffffff"
+primaryColor = "#00e5ff"
+borderColor = "#1e293b"
+showWidgetBorder = true
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false

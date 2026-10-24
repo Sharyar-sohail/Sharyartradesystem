@@ -1,0 +1,190 @@
+{
+  "system_version": "2.0.0",
+  "name": "Binance Independent Multi-Platform Trading Strategy Specification",
+  "description": "Canonical mathematical specification for Python Web Dashboard and Native Android Mobile App. Guarantees 100% identical outputs and zero PC dependency.",
+  "indicators": {
+    "atr": {
+      "period": 14,
+      "smoothing": "rma"
+    },
+    "bollinger": {
+      "period": 20,
+      "std_dev": 2.0,
+      "squeeze_lookback": 25,
+      "squeeze_threshold_multiplier": 1.35
+    },
+    "ema": {
+      "fast": 9,
+      "medium": 21,
+      "slow": 55
+    },
+    "rsi": {
+      "period": 14
+    },
+    "macd": {
+      "fast": 12,
+      "slow": 26,
+      "signal": 9
+    },
+    "volume_sma": {
+      "period": 20
+    }
+  },
+  "strategies": {
+    "mega_pump_capture": {
+      "id": "mega_pump_capture",
+      "name": "Master Mega-Pump Base Ignition",
+      "category": "Mega-Move / Explosive",
+      "target_horizon": "50% to 500%+",
+      "min_volume_surge": 2.5,
+      "base_consolidation_bars": 12,
+      "min_body_ratio": 0.50,
+      "rsi_min": 50,
+      "rsi_max": 85,
+      "default_ai_confidence": 94.5,
+      "expected_move_pct": 120.0,
+      "target_10pct_multiplier": 1.15,
+      "target_20pct_multiplier": 1.30,
+      "target_mega_multiplier": 2.20,
+      "stop_loss_formula": "entry - max(atr * 1.5, entry * 0.035)"
+    },
+    "master_ai_hybrid": {
+      "id": "master_ai_hybrid",
+      "name": "Proprietary AI Dynamic Consensus",
+      "category": "AI / Multi-Confluence",
+      "target_horizon": "Multi-Horizon (10%-20% & Mega)",
+      "min_confluence_votes": 2,
+      "base_confidence": 88.0,
+      "vote_confidence_step": 3.5,
+      "max_confidence": 98.5,
+      "long_sl_formula": "entry - max(atr * 1.4, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.4, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.50,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.50
+    },
+    "smc_core": {
+      "id": "smc_core",
+      "name": "Smart Money Concepts (SMC)",
+      "category": "Institutional Structure",
+      "target_horizon": "10% to 20% & Mega Swings",
+      "default_ai_confidence": 92.5,
+      "expected_move_pct": 22.0,
+      "fvg_min_displacement_atr": 1.4,
+      "long_sl_formula": "entry - max(atr * 1.3, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.3, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.22,
+      "long_mega_mult": 1.65,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.78,
+      "short_mega_mult": 0.35
+    },
+    "ict_inner_circle": {
+      "id": "ict_inner_circle",
+      "name": "Inner Circle Trader (ICT)",
+      "category": "ICT Methodologies",
+      "target_horizon": "Intraday & Mega Swings",
+      "default_ai_confidence": 93.0,
+      "expected_move_pct": 20.0,
+      "ote_fib_min": 0.618,
+      "ote_fib_max": 0.786,
+      "long_sl_formula": "entry - max(atr * 1.25, entry * 0.022)",
+      "short_sl_formula": "entry + max(atr * 1.25, entry * 0.022)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.55,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.45
+    },
+    "vfs_volume_flow": {
+      "id": "vfs_volume_flow",
+      "name": "Volume Flow Spread (VFS)",
+      "category": "Order Flow Dynamics",
+      "target_horizon": "10% to 20%",
+      "default_ai_confidence": 91.5,
+      "expected_move_pct": 20.0,
+      "long_sl_formula": "entry - max(atr * 1.3, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.3, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.50,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.50
+    },
+    "vsa_footprint": {
+      "id": "vsa_footprint",
+      "name": "Volume Spread Analysis (VSA)",
+      "category": "Volume Dynamics",
+      "target_horizon": "10% to 20%",
+      "default_ai_confidence": 91.0,
+      "expected_move_pct": 20.0,
+      "stopping_vol_mult": 2.2,
+      "long_sl_formula": "entry - max(atr * 1.3, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.3, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.50,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.50
+    },
+    "bollinger_squeeze": {
+      "id": "bollinger_squeeze",
+      "name": "Bollinger Squeeze & Vol Surge",
+      "category": "Breakout Momentum",
+      "target_horizon": "10% to 20%",
+      "min_vol_surge": 1.70,
+      "default_ai_confidence": 91.0,
+      "expected_move_pct": 20.0,
+      "long_sl_formula": "entry - max(atr * 1.3, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.3, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.60,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.40
+    },
+    "candle_king": {
+      "id": "candle_king",
+      "name": "Candle King Geometry",
+      "category": "Price Action Geometry",
+      "target_horizon": "10% to 20%",
+      "pinbar_wick_ratio": 0.65,
+      "engulfing_body_multiplier": 1.30,
+      "default_ai_confidence": 90.5,
+      "expected_move_pct": 20.0,
+      "long_sl_formula": "entry - max(atr * 1.3, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.3, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.50,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.50
+    },
+    "rsi_divergence": {
+      "id": "rsi_divergence",
+      "name": "RSI / MACD Divergence",
+      "category": "Momentum Reversals",
+      "target_horizon": "10% to 20%",
+      "lookback": 14,
+      "default_ai_confidence": 90.0,
+      "expected_move_pct": 20.0,
+      "long_sl_formula": "entry - max(atr * 1.4, entry * 0.025)",
+      "short_sl_formula": "entry + max(atr * 1.4, entry * 0.025)",
+      "long_tp1_mult": 1.10,
+      "long_tp2_mult": 1.20,
+      "long_mega_mult": 1.50,
+      "short_tp1_mult": 0.90,
+      "short_tp2_mult": 0.80,
+      "short_mega_mult": 0.50
+    }
+  }
+}

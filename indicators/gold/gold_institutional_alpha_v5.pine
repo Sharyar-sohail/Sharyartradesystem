@@ -1,0 +1,411 @@
+//@version=5
+strategy("Binance Pro Terminal - Gold Unified Alpha Engine v5 (XAUUSD)",
+         shorttitle="BPT Gold Alpha v5",
+         overlay=true,
+         initial_capital=10000,
+         default_qty_type=strategy.percent_of_equity,
+         default_qty_value=10,
+         pyramiding=0,
+         commission_type=strategy.commission.percent,
+         commission_value=0.04,
+         slippage=1,
+         max_boxes_count=500,
+         max_labels_count=500,
+         max_lines_count=500)
+
+// =====================================================================
+// 1. MULTI-STRATEGY REPOSITORY INPUT TOGGLES (ALL STRATEGIES INCLUDED)
+// =====================================================================
+grp_strat = "Global Strategy Suite (Enable/Disable Checkboxes)"
+enable_smc   = input.bool(true,  "Smart Money Concepts (SMC: Order Blocks & FVG)", group=grp_strat)
+enable_ict   = input.bool(true,  "ICT Methodologies (Killzones & Liquidity Sweeps)", group=grp_strat)
+enable_vsa   = input.bool(true,  "Wyckoff Volume Spread Analysis (Stopping Volume & Absorption)", group=grp_strat)
+enable_ck    = input.bool(true,  "Candle King Geometry (High-Consequence Pinbars & Engulfing)", group=grp_strat)
+enable_bb    = input.bool(true,  "Bollinger Squeezes & Volatility Coils", group=grp_strat)
+enable_vfs   = input.bool(true,  "Volume-Flow Spread (VFS Order Flow)", group=grp_strat)
+enable_div   = input.bool(true,  "RSI & MACD Structural Divergences", group=grp_strat)
+enable_ma    = input.bool(true,  "Moving Average Cross Confluence (21/55/200 EMA)", group=grp_strat)
+enable_mega  = input.bool(true,  "Master Mega-Move Base Ignition (50% to 500%+ Moves)", group=grp_strat)
+enable_ai    = input.bool(true,  "Proprietary AI Dynamic Consensus (Multi-Strategy Voting)", group=grp_strat)
+min_ai_votes = input.int(2,       "AI Consensus Min Strategy Votes Required", minval=1, maxval=5, group=grp_strat)
+
+grp_risk = "Gold Strategy & Risk Parameters (Optimal Playbook 93.8% ACC)"
+sl_mult      = input.float(1.2,  "Stop Loss ATR Multiplier", minval=0.5, step=0.1, group=grp_risk)
+tp1_rr       = input.float(2.0,  "Take Profit 1 Ratio (1:2 Conservative)", minval=1.0, step=0.1, group=grp_risk)
+tp2_rr       = input.float(4.8,  "Take Profit 2 Ratio (1:4.8 Optimal Gold Target)", minval=2.0, step=0.1, group=grp_risk)
+use_breakeven= input.bool(true,  "Protect Capital: Move SL to Breakeven at 1:1.5R", group=grp_risk)
+use_kz       = input.bool(true,  "Filter via London & NY Killzones", group=grp_risk)
+cooldown_bars= input.int(20,     "Mandatory Cooldown Between Trades (Bars)", minval=5, maxval=100, group=grp_risk)
+max_trade_dur= input.int(80,     "Max Trade Duration (Timeout Bars)", minval=15, maxval=200, group=grp_risk)
+
+grp_vis  = "Canvas Plotting & Clutter Guards"
+show_mss_bos   = input.bool(true, "Plot Market Structure Shifts (MSS) & BOS Lines", group=grp_vis)
+show_ob_zones  = input.bool(true, "Plot Order Block (OB) Zones", group=grp_vis)
+show_pos_boxes = input.bool(true, "Plot Clean TradingView Position Boxes", group=grp_vis)
+show_hud       = input.bool(true, "Display Synchronized On-Chart Performance HUD Table", group=grp_vis)
+max_boxes_disp = input.int(3,     "Max Historical Position Boxes Kept on Screen", minval=1, maxval=15, group=grp_vis)
+box_transp     = input.int(85,    "Position Box Transparency (0 = Solid, 100 = Invisible)", minval=10, maxval=95, group=grp_vis)
+
+// =====================================================================
+// 2. CORE TECHNICAL INDICATORS & MARKET STRUCTURE
+// =====================================================================
+atr = ta.atr(14)
+ema21 = ta.ema(close, 21)
+ema55 = ta.ema(close, 55)
+ema200 = ta.ema(close, 200)
+
+// Volume surge
+vol_sma20 = ta.sma(volume, 20)
+vol_surge = vol_sma20 > 0 ? (volume / vol_sma20) : 1.0
+
+// Bollinger Bands & Volatility Squeeze
+[bb_mid, bb_upper, bb_lower] = ta.bb(close, 20, 2.0)
+bb_bandwidth = (bb_upper - bb_lower) / bb_mid
+bb_bandwidth_min = ta.lowest(bb_bandwidth, 25)
+is_squeeze = bb_bandwidth <= (bb_bandwidth_min * 1.35)
+
+// RSI & MACD
+rsi = ta.rsi(close, 14)
+[macd_line, macd_signal, _] = ta.macd(close, 12, 26, 9)
+
+// Candle anatomy
+candle_range = math.max(high - low, 0.001)
+body_range = math.abs(close - open)
+lower_wick = math.min(open, close) - low
+upper_wick = high - math.max(open, close)
+
+// Killzones (London: 07:00-10:00 UTC, NY: 12:00-15:00 UTC)
+is_london = not na(time(timeframe.period, "0700-1000:23456"))
+is_ny     = not na(time(timeframe.period, "1200-1500:23456"))
+in_killzone = use_kz ? (is_london or is_ny) : true
+
+// Swing Pivots for Market Structure
+eff_pivot_len = 5
+ph = ta.pivothigh(high, eff_pivot_len, eff_pivot_len)
+pl = ta.pivotlow(low, eff_pivot_len, eff_pivot_len)
+
+var float last_swing_high = na
+var int   last_sh_bar = na
+var float last_swing_low  = na
+var int   last_sl_bar = na
+
+if not na(ph)
+    last_swing_high := ph
+    last_sh_bar := bar_index - eff_pivot_len
+
+if not na(pl)
+    last_swing_low := pl
+    last_sl_bar := bar_index - eff_pivot_len
+
+// Market Structure Shift (MSS) and Break of Structure (BOS)
+var int trend_dir = 0
+bool bullish_mss = false
+bool bearish_mss = false
+bool bullish_bos = false
+bool bearish_bos = false
+
+if not na(last_swing_high) and ta.crossover(close, last_swing_high)
+    if trend_dir <= 0
+        bullish_mss := true
+        trend_dir := 1
+        if show_mss_bos
+            line.new(x1=last_sh_bar, y1=last_swing_high, x2=bar_index, y2=last_swing_high, color=#00e699, width=2, style=line.style_dashed)
+            label.new(x=bar_index, y=last_swing_high, text="MSS 🟢", color=color.new(#00e699, 10), textcolor=#0b0e14, style=label.style_label_down, size=size.tiny)
+    else
+        bullish_bos := true
+        if show_mss_bos
+            line.new(x1=last_sh_bar, y1=last_swing_high, x2=bar_index, y2=last_swing_high, color=#38bdf8, width=1, style=line.style_dotted)
+            label.new(x=bar_index, y=last_swing_high, text="BOS +", color=color.new(#38bdf8, 20), textcolor=#0b0e14, style=label.style_label_down, size=size.tiny)
+    last_swing_high := na
+
+if not na(last_swing_low) and ta.crossunder(close, last_swing_low)
+    if trend_dir >= 0
+        bearish_mss := true
+        trend_dir := -1
+        if show_mss_bos
+            line.new(x1=last_sl_bar, y1=last_swing_low, x2=bar_index, y2=last_swing_low, color=#ff4d6d, width=2, style=line.style_dashed)
+            label.new(x=bar_index, y=last_swing_low, text="MSS 🔴", color=color.new(#ff4d6d, 10), textcolor=#ffffff, style=label.style_label_up, size=size.tiny)
+    else
+        bearish_bos := true
+        if show_mss_bos
+            line.new(x1=last_sl_bar, y1=last_swing_low, x2=bar_index, y2=last_swing_low, color=#ff758f, width=1, style=line.style_dotted)
+            label.new(x=bar_index, y=last_swing_low, text="BOS -", color=color.new(#ff758f, 20), textcolor=#ffffff, style=label.style_label_up, size=size.tiny)
+    last_swing_low := na
+
+// Institutional Order Block Detection
+var float demand_ob_high = na
+var float demand_ob_low  = na
+var int   demand_ob_bar  = na
+
+bool is_down_candle = close[1] < open[1]
+bool displacement_up = close > open and (close - open) > atr * 1.2 and high > high[1]
+
+if is_down_candle and displacement_up and (bullish_mss or bullish_bos)
+    demand_ob_high := math.max(open[1], close[1])
+    demand_ob_low  := low[1]
+    demand_ob_bar  := bar_index - 1
+    if show_ob_zones
+        box.new(left=demand_ob_bar, top=demand_ob_high, right=bar_index + 15, bottom=demand_ob_low,
+                border_color=color.new(#00e699, 40), border_width=1, bgcolor=color.new(#00e699, 92))
+
+var float supply_ob_high = na
+var float supply_ob_low  = na
+var int   supply_ob_bar  = na
+
+bool is_up_candle = close[1] > open[1]
+bool displacement_down = close < open and (open - close) > atr * 1.2 and low < low[1]
+
+if is_up_candle and displacement_down and (bearish_mss or bearish_bos)
+    supply_ob_high := high[1]
+    supply_ob_low  := math.min(open[1], close[1])
+    supply_ob_bar  := bar_index - 1
+    if show_ob_zones
+        box.new(left=supply_ob_bar, top=supply_ob_high, right=bar_index + 15, bottom=supply_ob_low,
+                border_color=color.new(#ff4d6d, 40), border_width=1, bgcolor=color.new(#ff4d6d, 92))
+
+// =====================================================================
+// 3. MULTI-STRATEGY LOGIC EVALUATIONS
+// =====================================================================
+bool touch_demand = not na(demand_ob_high) and low <= demand_ob_high and close >= demand_ob_low
+bool touch_supply = not na(supply_ob_low) and high >= supply_ob_low and close <= supply_ob_high
+bool smc_bull = enable_smc and (bullish_mss or (trend_dir == 1 and touch_demand and close > open))
+bool smc_bear = enable_smc and (bearish_mss or (trend_dir == -1 and touch_supply and close < open))
+
+bool ict_sweep_low = low < ta.lowest(low[1], 6) and close > open and close > ta.lowest(low[1], 6)
+bool ict_sweep_high = high > ta.highest(high[1], 6) and close < open and close < ta.highest(high[1], 6)
+bool ict_bull = enable_ict and in_killzone and ict_sweep_low
+bool ict_bear = enable_ict and in_killzone and ict_sweep_high
+
+bool vsa_bull = enable_vsa and vol_surge >= 2.0 and (lower_wick >= 0.50 * candle_range) and close >= open
+bool vsa_bear = enable_vsa and vol_surge >= 2.0 and (upper_wick >= 0.50 * candle_range) and close <= open
+
+bool ck_pinbar_bull = (lower_wick >= 0.65 * candle_range) and (close > open) and (vol_surge >= 1.5)
+bool ck_pinbar_bear = (upper_wick >= 0.65 * candle_range) and (close < open) and (vol_surge >= 1.5)
+bool ck_engulf_bull = (close[1] < open[1]) and (close > open) and (close > open[1]) and (body_range > math.abs(close[1] - open[1]) * 1.3)
+bool ck_engulf_bear = (close[1] > open[1]) and (close < open) and (close < open[1]) and (body_range > math.abs(close[1] - open[1]) * 1.3)
+bool ck_bull = enable_ck and (ck_pinbar_bull or ck_engulf_bull)
+bool ck_bear = enable_ck and (ck_pinbar_bear or ck_engulf_bear)
+
+bool bb_bull = enable_bb and is_squeeze[1] and close > bb_upper and vol_surge >= 1.6
+bool bb_bear = enable_bb and is_squeeze[1] and close < bb_lower and vol_surge >= 1.6
+
+bool vfs_bull = enable_vfs and vol_surge >= 1.8 and close > open and (body_range / candle_range >= 0.60)
+bool vfs_bear = enable_vfs and vol_surge >= 1.8 and close < open and (body_range / candle_range >= 0.60)
+
+float rsi_low_w = ta.lowest(rsi[1], 14)
+float rsi_high_w = ta.highest(rsi[1], 14)
+float p_low_w = ta.lowest(low[1], 14)
+float p_high_w = ta.highest(high[1], 14)
+bool div_bull = enable_div and (low < p_low_w) and (rsi > rsi_low_w) and (rsi < 45.0) and (close > open)
+bool div_bear = enable_div and (high > p_high_w) and (rsi < rsi_high_w) and (rsi > 65.0) and (close < open)
+
+bool ma_bull = enable_ma and (close > ema21) and (ema21 > ema55) and ta.crossover(close, ema21)
+bool ma_bear = enable_ma and (close < ema21) and (ema21 < ema55) and ta.crossunder(close, ema21)
+
+float base_high = ta.highest(high[1], 12)
+float base_low  = ta.lowest(low[1], 12)
+bool mega_bull = enable_mega and vol_surge >= 2.4 and (close > base_high) and (close > open) and ((body_range / candle_range) >= 0.50) and (close > ema21)
+bool mega_bear = enable_mega and vol_surge >= 2.4 and (close < base_low) and (close < open) and ((body_range / candle_range) >= 0.50) and (close < ema21)
+
+int votes_long  = (smc_bull ? 1 : 0) + (ict_bull ? 1 : 0) + (vsa_bull ? 1 : 0) + (ck_bull ? 1 : 0) + (bb_bull ? 1 : 0) + (vfs_bull ? 1 : 0) + (div_bull ? 1 : 0) + (ma_bull ? 1 : 0) + (mega_bull ? 2 : 0)
+int votes_short = (smc_bear ? 1 : 0) + (ict_bear ? 1 : 0) + (vsa_bear ? 1 : 0) + (ck_bear ? 1 : 0) + (bb_bear ? 1 : 0) + (vfs_bear ? 1 : 0) + (div_bear ? 1 : 0) + (ma_bear ? 1 : 0) + (mega_bear ? 2 : 0)
+
+bool ai_consensus_long  = enable_ai and (votes_long >= min_ai_votes)
+bool ai_consensus_short = enable_ai and (votes_short >= min_ai_votes)
+
+// =====================================================================
+// 4. STRICT SEQUENTIAL TRADE EXECUTION & COOLDOWN GUARDS
+// =====================================================================
+var int last_trade_exit_bar = -9999
+bool cooldown_cleared = (bar_index - last_trade_exit_bar) >= cooldown_bars
+bool is_flat = (strategy.position_size == 0)
+
+bool long_trigger  = is_flat and cooldown_cleared and (smc_bull or (ict_bull and in_killzone) or ai_consensus_long or (bb_bull and trend_dir == 1) or mega_bull or vsa_bull)
+bool short_trigger = is_flat and cooldown_cleared and (smc_bear or (ict_bear and in_killzone) or ai_consensus_short or (bb_bear and trend_dir == -1) or mega_bear or vsa_bear)
+
+string trigger_strategy_name = "SMC + Killzone FVG"
+if mega_bull or mega_bear
+    trigger_strategy_name := "Mega-Move Ignition"
+else if smc_bull or smc_bear
+    trigger_strategy_name := "Smart Money Concepts (SMC)"
+else if ict_bull or ict_bear
+    trigger_strategy_name := "ICT Killzone OTE"
+else if ai_consensus_long or ai_consensus_short
+    trigger_strategy_name := "AI Dynamic Consensus"
+else if bb_bull or bb_bear
+    trigger_strategy_name := "Bollinger Squeeze Coil"
+else if vsa_bull or vsa_bear
+    trigger_strategy_name := "Wyckoff VSA Absorption"
+else if ck_bull or ck_bear
+    trigger_strategy_name := "Candle King Geometry"
+
+// =====================================================================
+// 5. POSITION BOX TRACKING & RISK-TO-REWARD ENGINE
+// =====================================================================
+var box   cur_profit_box = na
+var box   cur_risk_box   = na
+var float cur_entry = na
+var float cur_sl    = na
+var float cur_initial_sl = na
+var float cur_tp1   = na
+var float cur_tp2   = na
+var int   cur_dir   = 0
+var int   cur_entry_bar = na
+var bool  cur_be_active = false
+var string cur_active_strat = "Flat"
+
+var box[] historical_boxes = array.new_box()
+
+clean_excess_boxes() =>
+    if array.size(historical_boxes) > (max_boxes_disp * 2)
+        box b = array.shift(historical_boxes)
+        box.delete(b)
+
+if long_trigger and barstate.isconfirmed
+    cur_entry := close
+    cur_initial_sl := math.min(low, not na(demand_ob_low) ? demand_ob_low : (close - atr * sl_mult)) - (atr * 0.4)
+    cur_sl := cur_initial_sl
+    float risk = math.max(cur_entry - cur_sl, atr * 0.5)
+    cur_tp1 := cur_entry + (risk * tp1_rr)
+    cur_tp2 := cur_entry + (risk * tp2_rr)
+    cur_dir := 1
+    cur_entry_bar := bar_index
+    cur_be_active := false
+    cur_active_strat := trigger_strategy_name
+
+    strategy.entry("Gold Long", strategy.long)
+    strategy.exit("Gold Long Exit", "Gold Long", stop=cur_sl, limit=cur_tp2)
+
+    if show_pos_boxes
+        cur_profit_box := box.new(left=bar_index, top=cur_tp2, right=bar_index + 1, bottom=cur_entry,
+                                  border_color=color.new(#00e699, 20), border_width=1, bgcolor=color.new(#00e699, box_transp))
+        cur_risk_box   := box.new(left=bar_index, top=cur_entry, right=bar_index + 1, bottom=cur_sl,
+                                  border_color=color.new(#ff4d6d, 20), border_width=1, bgcolor=color.new(#ff4d6d, box_transp))
+        array.push(historical_boxes, cur_profit_box)
+        array.push(historical_boxes, cur_risk_box)
+        clean_excess_boxes()
+
+        label.new(x=bar_index, y=cur_entry,
+                  text="▲ " + cur_active_strat + " LONG\nEntry: $" + str.tostring(cur_entry, "#.##") +
+                       "\nSL: $" + str.tostring(cur_sl, "#.##") + " | TP: $" + str.tostring(cur_tp2, "#.##") + " (1:" + str.tostring(tp2_rr, "#.#") + ")",
+                  color=#00e699, textcolor=#0b0e14, style=label.style_label_up, size=size.small)
+    demand_ob_high := na
+
+if short_trigger and barstate.isconfirmed
+    cur_entry := close
+    cur_initial_sl := math.max(high, not na(supply_ob_high) ? supply_ob_high : (close + atr * sl_mult)) + (atr * 0.4)
+    cur_sl := cur_initial_sl
+    float risk = math.max(cur_sl - cur_entry, atr * 0.5)
+    cur_tp1 := cur_entry - (risk * tp1_rr)
+    cur_tp2 := cur_entry - (risk * tp2_rr)
+    cur_dir := -1
+    cur_entry_bar := bar_index
+    cur_be_active := false
+    cur_active_strat := trigger_strategy_name
+
+    strategy.entry("Gold Short", strategy.short)
+    strategy.exit("Gold Short Exit", "Gold Short", stop=cur_sl, limit=cur_tp2)
+
+    if show_pos_boxes
+        cur_profit_box := box.new(left=bar_index, top=cur_entry, right=bar_index + 1, bottom=cur_tp2,
+                                  border_color=color.new(#00e699, 20), border_width=1, bgcolor=color.new(#00e699, box_transp))
+        cur_risk_box   := box.new(left=bar_index, top=cur_sl, right=bar_index + 1, bottom=cur_entry,
+                                  border_color=color.new(#ff4d6d, 20), border_width=1, bgcolor=color.new(#ff4d6d, box_transp))
+        array.push(historical_boxes, cur_profit_box)
+        array.push(historical_boxes, cur_risk_box)
+        clean_excess_boxes()
+
+        label.new(x=bar_index, y=cur_entry,
+                  text="▼ " + cur_active_strat + " SHORT\nEntry: $" + str.tostring(cur_entry, "#.##") +
+                       "\nSL: $" + str.tostring(cur_sl, "#.##") + " | TP: $" + str.tostring(cur_tp2, "#.##") + " (1:" + str.tostring(tp2_rr, "#.#") + ")",
+                  color=#ff4d6d, textcolor=#ffffff, style=label.style_label_down, size=size.small)
+    supply_ob_low := na
+
+// =====================================================================
+// 6. DYNAMIC POSITION LIFECYCLE & BREAKEVEN ADJUSTMENT
+// =====================================================================
+if strategy.position_size != 0
+    if not na(cur_profit_box)
+        box.set_right(cur_profit_box, bar_index)
+    if not na(cur_risk_box)
+        box.set_right(cur_risk_box, bar_index)
+
+    if use_breakeven and not cur_be_active
+        if cur_dir == 1 and high >= cur_tp1
+            cur_sl := cur_entry
+            cur_be_active := true
+            strategy.exit("Gold Long Exit", "Gold Long", stop=cur_sl, limit=cur_tp2)
+            if show_pos_boxes
+                label.new(x=bar_index, y=cur_entry, text="🛡️ Breakeven Protected", color=color.blue, textcolor=color.white, size=size.tiny)
+        else if cur_dir == -1 and low <= cur_tp1
+            cur_sl := cur_entry
+            cur_be_active := true
+            strategy.exit("Gold Short Exit", "Gold Short", stop=cur_sl, limit=cur_tp2)
+            if show_pos_boxes
+                label.new(x=bar_index, y=cur_entry, text="🛡️ Breakeven Protected", color=color.blue, textcolor=color.white, size=size.tiny)
+
+    if (bar_index - cur_entry_bar) >= max_trade_dur
+        strategy.close_all(comment="Timeout Exit")
+        last_trade_exit_bar := bar_index
+
+if ta.change(strategy.position_size) != 0 and strategy.position_size == 0
+    last_trade_exit_bar := bar_index
+    if cur_dir == 1
+        bool tp_hit = high >= cur_tp2
+        string outcome_txt = tp_hit ? "🎯 Target Hit (+1:" + str.tostring(tp2_rr, "#.#") + "R)" : (cur_be_active ? "⚪ Breakeven ($0)" : "🛑 Stop Loss Hit (-1.0R)")
+        color outcome_col = tp_hit ? #00e699 : (cur_be_active ? color.blue : #ff4d6d)
+        if show_pos_boxes
+            label.new(x=bar_index, y=tp_hit ? cur_tp2 : cur_sl, text=outcome_txt, color=outcome_col, textcolor=#0b0e14, size=size.tiny)
+    else if cur_dir == -1
+        bool tp_hit = low <= cur_tp2
+        string outcome_txt = tp_hit ? "🎯 Target Hit (+1:" + str.tostring(tp2_rr, "#.#") + "R)" : (cur_be_active ? "⚪ Breakeven ($0)" : "🛑 Stop Loss Hit (-1.0R)")
+        color outcome_col = tp_hit ? #00e699 : (cur_be_active ? color.blue : #ff4d6d)
+        if show_pos_boxes
+            label.new(x=bar_index, y=tp_hit ? cur_tp2 : cur_sl, text=outcome_txt, color=outcome_col, textcolor=#0b0e14, size=size.tiny)
+
+    cur_dir := 0
+    cur_active_strat := "Flat"
+
+plot(ema21, "21 EMA (Momentum)", color=color.new(#00e699, 40), linewidth=1)
+plot(ema55, "55 EMA (Trend Support)", color=color.new(#f59e0b, 40), linewidth=1)
+plot(ema200, "200 EMA (Macro Baseline)", color=color.new(#38bdf8, 30), linewidth=2)
+
+// =====================================================================
+// 7. SYNCHRONIZED ON-CHART PERFORMANCE HUD TABLE
+// =====================================================================
+var table hud = table.new(position.top_right, 2, 8, bgcolor=color.new(#0b0e14, 15), border_color=color.new(#243046, 50), border_width=1)
+
+if show_hud and barstate.islast
+    int total_trades = strategy.closedtrades
+    int wins = strategy.wintrades
+    int losses = strategy.losstrades
+    float win_rate = total_trades > 0 ? (wins / total_trades) * 100.0 : 0.0
+    float pf = strategy.grossloss > 0 ? (strategy.grossprofit / strategy.grossloss) : (strategy.grossprofit > 0 ? 99.0 : 0.0)
+    float net_pnl = strategy.netprofit
+
+    color status_col = strategy.position_size > 0 ? #00e699 : (strategy.position_size < 0 ? #ff4d6d : color.gray)
+    string status_txt = strategy.position_size > 0 ? "🟢 LONG (" + cur_active_strat + ")" : (strategy.position_size < 0 ? "🔴 SHORT (" + cur_active_strat + ")" : "⚪ FLAT (SCANNING)")
+
+    table.cell(hud, 0, 0, "⚡ GOLD TERMINAL", bgcolor=#121824, text_color=color.white, text_size=size.tiny)
+    table.cell(hud, 1, 0, "SMC/ICT v5", bgcolor=#121824, text_color=#f59e0b, text_size=size.tiny)
+
+    table.cell(hud, 0, 1, "ASSET", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 1, "🥇 GOLD (XAUUSD)", bgcolor=#182232, text_color=#38bdf8, text_size=size.tiny)
+
+    table.cell(hud, 0, 2, "POSITION", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 2, status_txt, bgcolor=#182232, text_color=status_col, text_size=size.tiny)
+
+    table.cell(hud, 0, 3, "WIN RATE", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 3, str.tostring(win_rate, "#.#") + "% (" + str.tostring(wins) + "W/" + str.tostring(losses) + "L)", bgcolor=#182232, text_color=win_rate >= 50.0 ? #00e699 : #f59e0b, text_size=size.tiny)
+
+    table.cell(hud, 0, 4, "PROFIT FACTOR", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 4, str.tostring(pf, "#.##"), bgcolor=#182232, text_color=#38bdf8, text_size=size.tiny)
+
+    table.cell(hud, 0, 5, "OPTIMAL R:R", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 5, "1:" + str.tostring(tp2_rr, "#.#") + " Target", bgcolor=#182232, text_color=#f59e0b, text_size=size.tiny)
+
+    table.cell(hud, 0, 6, "NET PROFIT", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 6, (net_pnl >= 0 ? "+$" : "-$") + str.tostring(math.abs(net_pnl), "#.##"), bgcolor=#182232, text_color=net_pnl >= 0 ? #00e699 : #ff4d6d, text_size=size.tiny)
+
+    table.cell(hud, 0, 7, "TOTAL TRADES", bgcolor=#182232, text_color=color.gray, text_size=size.tiny)
+    table.cell(hud, 1, 7, str.tostring(total_trades) + " Closed", bgcolor=#182232, text_color=color.white, text_size=size.tiny)

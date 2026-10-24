@@ -1,0 +1,41 @@
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Android Build & Gradle (Keep downloads/ and assets/ APKs)
+android_app/.gradle/
+android_app/.kotlin/
+android_app/build/
+android_app/app/build/
+local.properties
+.gradle/
+*.hprof
+
+# SQLite Temporary Files
+*.db-wal
+*.db-shm
+
+# Streamlit Local Runtime
+.streamlit/secrets.toml
+
+# IDE & OS Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.bak
