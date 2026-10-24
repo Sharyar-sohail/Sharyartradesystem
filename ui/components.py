@@ -543,19 +543,19 @@ def render_role_selection_welcome_screen():
             st.markdown(
                 "<div style='text-align:center; padding:10px 0;'>"
                 "<div style='font-size:2.2rem; margin-bottom:6px;'>🚀</div>"
-                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Crypto Quantitative Trader</div>"
-                "<div style='font-size:0.75rem; color:#00E5FF; font-weight:700; margin-bottom:12px;'>BITCOIN, ETHEREUM, SOLANA & ALTCOIN MEGA-MOVES</div>"
+                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Crypto Trader Lane</div>"
+                "<div style='font-size:0.75rem; color:#00E5FF; font-weight:700; margin-bottom:12px;'>BINANCE SPOT/FUTURES • BITCOIN KING • ALTCOIN MEGA-MOVES</div>"
                 "</div>",
                 unsafe_allow_html=True
             )
             st.markdown(
-                "• **90%+ Live Breakout Signals:** Real-time tracking with dynamic TP1, TP2, and Mega Targets.\n"
-                "• **Automated Demo Engine:** 1:1 Breakeven ratchet & AI SL/TP root cause analysis self-correction.\n"
-                "• **Cross-Exchange Coverage:** Real-time depth across Binance, Bybit, Bitget, and Gate.io.\n"
-                "• **Universal Coin Engine:** Search & scan any crypto token or meme asset globally."
+                "• **Binance Real-Time Integration:** Dynamic pairs stream with Bitcoin prioritized as market leader.\n"
+                "• **Accurate Live Tracking Signals:** Instant Entry, Take Profit (TP), Stop Loss (SL), and AI confidence.\n"
+                "• **Automated Demo Trading Daemon:** Virtual balance execution with live TP/SL hit counters.\n"
+                "• **AI Root Cause Self-Correction:** Logs why SL/TP were hit and iterates ML models 24/7."
             )
             st.write("")
-            if st.button("🚀 Launch Crypto Trader Mode", type="primary", width="stretch", key="btn_welcome_select_crypto"):
+            if st.button("🚀 Launch Crypto Trader Lane", type="primary", width="stretch", key="btn_welcome_select_crypto"):
                 st.session_state.trading_lane = "crypto"
                 st.session_state.show_welcome_modal = False
                 st.session_state.welcome_modal_dismissed = True
@@ -566,27 +566,27 @@ def render_role_selection_welcome_screen():
             st.markdown(
                 "<div style='text-align:center; padding:10px 0;'>"
                 "<div style='font-size:2.2rem; margin-bottom:6px;'>🪙</div>"
-                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Gold & Metals Trader</div>"
-                "<div style='font-size:0.75rem; color:#FFD700; font-weight:700; margin-bottom:12px;'>GOLD (XAU/USD), SILVER (XAG/USD) & COMMODITIES</div>"
+                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Forex & Metals Trader Lane</div>"
+                "<div style='font-size:0.75rem; color:#FFD700; font-weight:700; margin-bottom:12px;'>GOLD (XAU/USD) LEADER • SILVER • ALL MAJOR FOREX PAIRS</div>"
                 "</div>",
                 unsafe_allow_html=True
             )
             st.markdown(
-                "• **SMC & ICT Killzone Signals:** Order blocks, London/NY sweeps & Fair Value Gap mitigations.\n"
-                "• **Instant Copy-Paste Formatter:** Ready for 1-click execution in MT4, MT5, TradingView & Telegram.\n"
-                "• **Automated Backtesting:** Walk-forward stop-loss minimizer to eliminate whipsaws.\n"
-                "• **Multi-Timeframe Candlestick Charts:** Precise institutional entry/exit corridors & Fib levels."
+                "• **Free API Integration for All Pairs:** Live feeds for Gold, Silver, EUR/USD, GBP/USD, USD/JPY, etc.\n"
+                "• **SMC & ICT Killzone Strategies:** Institutional Order Blocks, Fair Value Gaps, London/NY sweeps.\n"
+                "• **1-Click MetaTrader Copy Box:** Clean, professional copy-paste format for MT4/MT5/Telegram.\n"
+                "• **Walk-Forward SL Minimizer:** Automated empirical backtesting to eliminate session whipsaws."
             )
             st.write("")
-            if st.button("🪙 Launch Gold & Metals Mode", type="primary", width="stretch", key="btn_welcome_select_metals"):
-                st.session_state.trading_lane = "metals"
+            if st.button("🪙 Launch Forex & Metals Lane", type="primary", width="stretch", key="btn_welcome_select_metals"):
+                st.session_state.trading_lane = "forex_metals"
                 st.session_state.show_welcome_modal = False
                 st.session_state.welcome_modal_dismissed = True
                 st.rerun()
 
     st.markdown(
         "<div style='text-align:center; margin-top:20px; font-size:0.82rem; color:#94a3b8;'>"
-        "💡 <i>Tip: You can seamlessly switch between Crypto and Metals modes at any time via the top command bar.</i>"
+        "💡 <i>Tip: You can seamlessly switch between Crypto and Forex & Metals lanes at any time via the top command bar.</i>"
         "</div>",
         unsafe_allow_html=True
     )
@@ -607,7 +607,8 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
     trade_size = getattr(runner, "trade_size_usd", 1.0)
 
     cur_lane = st.session_state.get("trading_lane", "crypto")
-    lane_badge = '<span style="background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🚀 CRYPTO TRADER</span>' if cur_lane == "crypto" else '<span style="background:rgba(255,215,0,0.18); border:1px solid #ffd700; color:#ffd700; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🪙 GOLD & METALS</span>'
+    is_fx = cur_lane in ["metals", "forex_metals"]
+    lane_badge = '<span style="background:rgba(255,215,0,0.18); border:1px solid #ffd700; color:#ffd700; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🪙 FOREX & METALS</span>' if is_fx else '<span style="background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🚀 CRYPTO TRADER</span>'
 
     with st.container(border=True):
         h_left, h_center, h_right = st.columns([1.8, 1.3, 1.3], vertical_alignment="center")
@@ -642,9 +643,9 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
         with h_right:
             t_col_lane, t_col1, t_col2, t_col3, t_col4 = st.columns([1.1, 0.9, 0.8, 0.6, 0.5], vertical_alignment="center")
             with t_col_lane:
-                target_lane = "metals" if cur_lane == "crypto" else "crypto"
-                btn_lane_text = "🪙 Metals" if cur_lane == "crypto" else "🚀 Crypto"
-                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help="Switch between Crypto and Gold/Metals trading specialization", width="stretch"):
+                target_lane = "crypto" if is_fx else "forex_metals"
+                btn_lane_text = "🚀 Crypto" if is_fx else "🪙 FX & Metals"
+                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help="Switch between Crypto and Forex & Metals trading specialization", width="stretch"):
                     st.session_state.trading_lane = target_lane
                     st.rerun()
             with t_col1:
@@ -765,13 +766,13 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
     Provides instant one-click switching across all trading tools and views.
     Configured dynamically based on active trading lane (Crypto vs Gold & Metals).
     """
-    if trading_lane == "metals":
+    if trading_lane in ["metals", "forex_metals"]:
         tabs = [
-            "🪙 Metals Command & Copy",
-            "📈 Metals Live Chart",
+            "🪙 Forex & Metals Signals",
+            "📈 FX & Metals Live Chart",
             "📊 Backtest & SL Minimizer",
-            "🤖 Automated Metals Demo",
-            "🧬 24/7 AI Lab",
+            "🤖 Auto-Trading & Demo Engine",
+            "🧬 24/7 AI Strategy Lab",
             "💼 Portfolio & History",
             "⚙️ System Logs"
         ]
@@ -779,11 +780,11 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
         tabs = [
             "📡 Live Signals & Tracking",
             "🤖 Auto-Trading & Demo Engine",
-            "🌐 Universal Engine",
+            "🌐 Universal Crypto Engine",
             "🧪 Alpha Lab",
-            "🧬 24/7 AI Lab",
-            "💥 Mega-Moves",
-            "🔄 Cross-Exchange",
+            "🧬 24/7 AI Strategy Lab",
+            "💥 Mega-Moves Screener",
+            "🔄 Cross-Exchange Arbitrage",
             "💼 Portfolio & History",
             "⚙️ System Logs"
         ]
@@ -1408,79 +1409,137 @@ def render_cmc_top_ticker_ribbon(metrics: Optional[Dict[str, Any]] = None):
     """
     Renders an ultra-compact, sleek, high-density market header strip.
     Occupies minimal vertical space (~34px) with smaller fonts and tight padding.
-    Strictly prioritizes BTC and Gold metrics.
+    Strictly tailors metrics to the active trading lane (Crypto vs Forex/Metals).
     """
     m = metrics or {}
-    mcap = m.get("mcap", "$2.64T")
-    mcap_chg = m.get("mcap_chg", "+2.8%")
-    vol = m.get("vol", "$84.6B")
-    vol_chg = m.get("vol_chg", "+5.4%")
-    btc_dom = m.get("btc_dom", "58.2%")
-    btc_dom_chg = m.get("btc_dom_chg", "+0.4%")
-    eth_dom = m.get("eth_dom", "14.1%")
-    eth_dom_chg = m.get("eth_dom_chg", "-0.2%")
-    gas = m.get("gas", "11 Gwei")
-    sentiment = m.get("sentiment", "74 Greed")
-    gold_spot = m.get("gold_spot", "$2,748.50")
-    gold_chg = m.get("gold_chg", "+1.4%")
-    acc = m.get("accuracy", "94.8%")
+    is_forex = m.get("is_forex", False)
 
-    html = f"""
-    <div class="cmc-compact-header-strip">
-        <div class="metric-item">
-            <span class="m-icon">🌐</span>
-            <span class="m-label">MCap:</span>
-            <span class="m-val">{mcap}</span>
-            <span class="m-up">{mcap_chg}</span>
+    if is_forex:
+        gold_spot = m.get("gold_spot", "$4,007.90")
+        gold_chg = m.get("gold_chg", "+1.4%")
+        silver_spot = m.get("silver_spot", "$53.70")
+        silver_chg = m.get("silver_chg", "+2.2%")
+        dxy = m.get("dxy", "104.25")
+        dxy_chg = m.get("dxy_chg", "+0.08%")
+        eur_usd = m.get("eur_usd", "1.1205")
+        eur_chg = m.get("eur_chg", "+0.15%")
+        gbp_usd = m.get("gbp_usd", "1.3375")
+        gbp_chg = m.get("gbp_chg", "+0.24%")
+        killzone = m.get("killzone", "LONDON / NY OPEN")
+        acc = m.get("accuracy", "94.6%")
+
+        html = f"""
+        <div class="cmc-compact-header-strip">
+            <div class="metric-item">
+                <span class="m-icon">🥇</span>
+                <span class="m-label">Gold (XAU):</span>
+                <span class="m-val">{gold_spot}</span>
+                <span class="m-up">{gold_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🥈</span>
+                <span class="m-label">Silver (XAG):</span>
+                <span class="m-val">{silver_spot}</span>
+                <span class="m-up">{silver_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">💵</span>
+                <span class="m-label">DXY Index:</span>
+                <span class="m-val">{dxy}</span>
+                <span class="m-up">{dxy_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">💶</span>
+                <span class="m-label">EUR/USD:</span>
+                <span class="m-val">{eur_usd}</span>
+                <span class="m-up">{eur_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">💷</span>
+                <span class="m-label">GBP/USD:</span>
+                <span class="m-val">{gbp_usd}</span>
+                <span class="m-up">{gbp_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🏛️</span>
+                <span class="m-label">Session:</span>
+                <span class="m-val">{killzone}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🎯</span>
+                <span class="m-label">Win Rate:</span>
+                <span class="m-val">{acc} Audited</span>
+            </div>
         </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">📊</span>
-            <span class="m-label">24h Vol:</span>
-            <span class="m-val">{vol}</span>
-            <span class="m-up">{vol_chg}</span>
+        """
+    else:
+        mcap = m.get("mcap", "$2.64T")
+        mcap_chg = m.get("mcap_chg", "+2.8%")
+        vol = m.get("vol", "$84.6B")
+        vol_chg = m.get("vol_chg", "+5.4%")
+        btc_dom = m.get("btc_dom", "58.2%")
+        btc_dom_chg = m.get("btc_dom_chg", "+0.4%")
+        eth_dom = m.get("eth_dom", "14.1%")
+        eth_dom_chg = m.get("eth_dom_chg", "-0.2%")
+        gas = m.get("gas", "11 Gwei")
+        sentiment = m.get("sentiment", "74 Greed")
+        acc = m.get("accuracy", "94.8%")
+
+        html = f"""
+        <div class="cmc-compact-header-strip">
+            <div class="metric-item">
+                <span class="m-icon">🌐</span>
+                <span class="m-label">MCap:</span>
+                <span class="m-val">{mcap}</span>
+                <span class="m-up">{mcap_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">📊</span>
+                <span class="m-label">24h Vol:</span>
+                <span class="m-val">{vol}</span>
+                <span class="m-up">{vol_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🪙</span>
+                <span class="m-label">BTC Dom:</span>
+                <span class="m-val">{btc_dom}</span>
+                <span class="m-up">{btc_dom_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🔷</span>
+                <span class="m-label">ETH Dom:</span>
+                <span class="m-val">{eth_dom}</span>
+                <span class="m-down">{eth_dom_chg}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">⛽</span>
+                <span class="m-label">Gas:</span>
+                <span class="m-val">{gas}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🧭</span>
+                <span class="m-label">Sentiment:</span>
+                <span class="m-val">{sentiment}</span>
+            </div>
+            <div class="m-sep">|</div>
+            <div class="metric-item">
+                <span class="m-icon">🎯</span>
+                <span class="m-label">Accuracy:</span>
+                <span class="m-val">{acc} Audited</span>
+            </div>
         </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">🪙</span>
-            <span class="m-label">BTC Dom:</span>
-            <span class="m-val">{btc_dom}</span>
-            <span class="m-up">{btc_dom_chg}</span>
-        </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">🔷</span>
-            <span class="m-label">ETH Dom:</span>
-            <span class="m-val">{eth_dom}</span>
-            <span class="m-down">{eth_dom_chg}</span>
-        </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">⛽</span>
-            <span class="m-label">Gas:</span>
-            <span class="m-val">{gas}</span>
-        </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">🧭</span>
-            <span class="m-label">Sentiment:</span>
-            <span class="m-val">{sentiment}</span>
-        </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">🥇</span>
-            <span class="m-label">Gold Spot:</span>
-            <span class="m-val">{gold_spot}</span>
-            <span class="m-up">{gold_chg}</span>
-        </div>
-        <div class="m-sep">|</div>
-        <div class="metric-item">
-            <span class="m-icon">🎯</span>
-            <span class="m-label">Accuracy:</span>
-            <span class="m-val">{acc} Audited</span>
-        </div>
-    </div>
-    """
+        """
     st.markdown(html, unsafe_allow_html=True)
 
 def build_sparkline_figure(prices: List[float], is_positive: bool = True) -> go.Figure:
@@ -1533,7 +1592,12 @@ def render_cmc_mini_sparkline_cards(movers: List[Dict[str, Any]]):
                 c_left, c_right = st.columns([1.5, 1.0])
                 with c_left:
                     st.markdown(f"**{sym}**")
-                    fmt_p = f"${price:,.2f}" if price >= 10 else f"${price:,.4f}"
+                    if "/" in sym and "USDT" not in sym and "USD" in sym and "XAU" not in sym and "XAG" not in sym:
+                        fmt_p = f"{price:.5f}"
+                    elif price >= 10:
+                        fmt_p = f"${price:,.2f}"
+                    else:
+                        fmt_p = f"${price:,.4f}"
                     st.markdown(f"`{fmt_p}`")
                 with c_right:
                     delta_color = "normal" if is_pos else "inverse"
@@ -1542,7 +1606,8 @@ def render_cmc_mini_sparkline_cards(movers: List[Dict[str, Any]]):
                 # Sparkline
                 spark_prices = m.get("sparkline_prices") or []
                 fig_sp = build_sparkline_figure(spark_prices, is_positive=is_pos)
-                st.plotly_chart(fig_sp, width="stretch", config={"displayModeBar": False})
+                clean_sym = sym.replace('/', '_').replace('=', '_')
+                st.plotly_chart(fig_sp, width="stretch", config={"displayModeBar": False}, key=f"sparkline_card_fig_{i}_{clean_sym}")
                 st.caption(f"Playbook: `{strat}`")
 
 def render_smart_alerts_banner(active_alerts: List[Dict[str, Any]], runner=None):

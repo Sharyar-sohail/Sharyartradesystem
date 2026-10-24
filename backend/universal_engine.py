@@ -662,6 +662,13 @@ def get_algorithmic_rationale_breakdown(signal: Dict[str, Any]) -> Dict[str, Any
         f"Upon reaching TP1 milestone (+10% / 1:2 R:R), Stop Loss is immediately moved to Breakeven (${entry:,.4f}) to lock in a risk-free trade."
     )
 
+    key_confluences = [
+        struct_mech,
+        liq_mech,
+        vol_mech,
+        invalidation_rules
+    ]
+
     return {
         "symbol": sym,
         "direction": direction,
@@ -677,5 +684,6 @@ def get_algorithmic_rationale_breakdown(signal: Dict[str, Any]) -> Dict[str, Any
         "liquidity_mechanics": liq_mech,
         "volume_mechanics": vol_mech,
         "invalidation_rules": invalidation_rules,
+        "key_confluences": key_confluences,
         "raw_signal_reason": reason or f"{strat} triggered with {conf:.1f}% AI conviction"
     }
