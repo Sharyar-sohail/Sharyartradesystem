@@ -922,6 +922,8 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
             "🪙 Forex & Metals Signals",
             "🏛️ Board of High",
             "📊 Live Trades & Statistics",
+            "🌊 Liquidity Heatmap",
+            "📜 Pine Script v5",
             "📈 FX & Metals Live Chart",
             "📊 Backtest & SL Minimizer",
             "🧬 24/7 AI Strategy Lab",
@@ -932,6 +934,8 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
         tabs = [
             "📡 Live Signals & Tracking",
             "📊 Live Trades & Statistics",
+            "🌊 Liquidity Heatmap",
+            "📜 Pine Script v5",
             "🌐 Universal Crypto Engine",
             "🧪 Alpha Lab",
             "🧬 24/7 AI Strategy Lab",
@@ -1197,8 +1201,70 @@ def build_pro_candlestick_chart(
     if show_supertrend and "supertrend" in plot_df:
         fig.add_trace(go.Scatter(x=plot_df["timestamp"], y=plot_df["supertrend"], name="SuperTrend", line=dict(color="#10b981", width=2)), row=1, col=1)
 
-    # 4. Smart Money Concepts (SMC) Fair Value Gaps & Order Blocks
-    if show_smc and "fvg_bull_low" in plot_df:
+    # 4. Smart Money Concepts (SMC) Fair Value Gaps, Order Blocks & Structure
+    if show_smc and not df.empty and len(df) >= 20:
+        try:
+            from backend.market_structure import analyze_market_structure
+            smc_meta = analyze_market_structure(df)
+            
+            # Plot Order Blocks
+            for ob in smc_meta.get("order_blocks", []):
+                ob_color = "rgba(0, 229, 255, 0.18)" if ob["type"] == "BULLISH_OB" else "rgba(255, 0, 122, 0.18)"
+                ob_line = "rgba(0, 229, 255, 0.6)" if ob["type"] == "BULLISH_OB" else "rgba(255, 0, 122, 0.6)"
+                idx = max(0, min(len(df) - 1, ob.get("index", len(df) - 10)))
+                fig.add_shape(
+                    type="rect",
+                    xref="x", yref="y",
+                    x0=df["timestamp"].iloc[idx],
+                    x1=df["timestamp"].iloc[-1],
+                    y0=ob["bottom"],
+                    y1=ob["top"],
+                    fillcolor=ob_color,
+                    line=dict(color=ob_line, width=1),
+                    row=1, col=1
+                )
+            
+            # Plot Fair Value Gaps (FVG)
+            for fvg in smc_meta.get("fvgs", []):
+                fvg_color = "rgba(255, 230, 0, 0.14)" if fvg["type"] == "BULLISH_FVG" else "rgba(251, 146, 60, 0.14)"
+                fvg_line = "rgba(255, 230, 0, 0.5)" if fvg["type"] == "BULLISH_FVG" else "rgba(251, 146, 60, 0.5)"
+                idx = max(0, min(len(df) - 1, fvg.get("index", len(df) - 8)))
+                fig.add_shape(
+                    type="rect",
+                    xref="x", yref="y",
+                    x0=df["timestamp"].iloc[idx],
+                    x1=df["timestamp"].iloc[-1],
+                    y0=min(fvg["bottom"], fvg["top"]),
+                    y1=max(fvg["bottom"], fvg["top"]),
+                    fillcolor=fvg_color,
+                    line=dict(color=fvg_line, width=1, dash="dot"),
+                    row=1, col=1
+                )
+
+            # Plot BOS / CHoCH Structure Markers
+            last_ts = df["timestamp"].iloc[-1]
+            for bos in smc_meta.get("bos_events", []):
+                b_color = "#00FF66" if "BULL" in bos["type"] else "#FF3366"
+                fig.add_annotation(
+                    x=last_ts, y=bos["level"],
+                    text=f"<b>BOS</b> ({'+MS' if 'BULL' in bos['type'] else '-MS'})",
+                    showarrow=True, arrowhead=2, arrowcolor=b_color,
+                    font=dict(color="#ffffff", size=9),
+                    bgcolor=b_color,
+                    row=1, col=1
+                )
+            for choch in smc_meta.get("choch_events", []):
+                fig.add_annotation(
+                    x=last_ts, y=choch["level"],
+                    text="<b>CHoCH</b> (Reversal)",
+                    showarrow=True, arrowhead=2, arrowcolor="#FFAA00",
+                    font=dict(color="#000000", size=9),
+                    bgcolor="#FFAA00",
+                    row=1, col=1
+                )
+        except Exception:
+            pass
+    elif show_smc and "fvg_bull_low" in plot_df:
         fvg_rows = plot_df[plot_df["fvg_bull_low"].notna()]
         for _, r in fvg_rows.tail(6).iterrows():
             fig.add_shape(
