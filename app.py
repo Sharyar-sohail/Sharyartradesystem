@@ -228,6 +228,19 @@ if st.session_state.get("trading_lane") is None:
 
 trading_lane = st.session_state.get("trading_lane", "crypto")
 
+# ---------------------------------------------------------------------
+# 2. APPLICATION INITIALIZATION & LANE HARMONIZATION
+# ---------------------------------------------------------------------
+cur_lane = st.session_state.get("trading_lane", "crypto")
+if cur_lane in ["forex", "metals", "forex_metals"]:
+    cur_sym = st.session_state.get("selected_symbol", "XAU/USD")
+    if not ("XAU" in cur_sym or "XAG" in cur_sym or any(fx in cur_sym for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"])):
+        st.session_state.selected_symbol = "XAU/USD"
+else:
+    cur_sym = st.session_state.get("selected_symbol", "BTC/USDT")
+    if "XAU" in cur_sym or "XAG" in cur_sym or any(fx in cur_sym for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"]):
+        st.session_state.selected_symbol = "BTC/USDT"
+
 # Ensure background market scanner daemon is running
 if not trading_runner.is_running:
     try:
@@ -651,11 +664,13 @@ def render_liquidity_heatmap_dashboard(trading_lane: str = "crypto"):
     st.markdown("### 🌊 **CoinGlass-Style Liquidity Heatmap & Leverage Density Matrix**")
     st.caption("Institutional depth visualization modeling estimated liquidation volume clusters (100x, 50x, 25x, 10x leverage) and magnetic price sweep targets.")
 
-    default_sym = "BTC/USDT" if trading_lane == "crypto" else "XAU/USD"
-    options_list = [
-        "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "DOGE/USDT", "PEPE/USDT", "SUI/USDT", "AVAX/USDT", "NEAR/USDT",
-        "XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD"
-    ]
+    is_fx = trading_lane in ["forex", "metals", "forex_metals"]
+    if is_fx:
+        options_list = ["XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "EUR/GBP"]
+        default_sym = "XAU/USD"
+    else:
+        options_list = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT", "DOGE/USDT", "PEPE/USDT", "SUI/USDT", "AVAX/USDT", "NEAR/USDT", "LINK/USDT", "ADA/USDT"]
+        default_sym = "BTC/USDT"
     if default_sym not in options_list:
         options_list.insert(0, default_sym)
 
@@ -725,11 +740,13 @@ def render_pinescript_generator_dashboard(trading_lane: str = "crypto"):
             key=f"pine_strat_select_{trading_lane}"
         )
     with p_col2:
-        default_pair = "BTC/USDT" if trading_lane == "crypto" else "XAU/USD"
+        is_fx_pine = trading_lane in ["forex", "metals", "forex_metals"]
+        pine_pairs = ["XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD"] if is_fx_pine else ["BTC/USDT", "ETH/USDT", "SOL/USDT", "PEPE/USDT", "BNB/USDT", "XRP/USDT", "DOGE/USDT", "SUI/USDT"]
+        default_pair = "XAU/USD" if is_fx_pine else "BTC/USDT"
         selected_pair = st.selectbox(
             "Target Asset",
-            ["BTC/USDT", "ETH/USDT", "SOL/USDT", "PEPE/USDT", "XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY"],
-            index=0 if trading_lane == "crypto" else 4,
+            pine_pairs,
+            index=0,
             key=f"pine_pair_select_{trading_lane}"
         )
     with p_col3:
@@ -779,10 +796,14 @@ def render_trade_risk_and_side_evaluation_dashboard(trading_lane: str = "crypto"
     st.markdown("### 🛡️ **Trade Risk Management & Side-Evaluation Engine**")
     st.caption("Institutions never fight market structure. Input active positions to evaluate momentum alignment ('Right Side' vs 'Wrong Side'), calculate relief exits, and recalculate dynamic SL/TP targets.")
 
-    default_sym = "BTC/USDT" if trading_lane == "crypto" else "XAU/USD"
+    is_fx_risk = trading_lane in ["forex", "metals", "forex_metals"]
+    default_sym = "XAU/USD" if is_fx_risk else "BTC/USDT"
     r_col1, r_col2, r_col3 = st.columns([1.5, 1.0, 1.2])
     with r_col1:
-        eval_sym = st.text_input("Asset / Pair Symbol", value=default_sym, key=f"risk_eval_sym_{trading_lane}")
+        if is_fx_risk:
+            eval_sym = st.selectbox("Forex / Metal Pair", ["XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD"], index=0, key=f"risk_eval_sym_{trading_lane}")
+        else:
+            eval_sym = st.text_input("Asset / Pair Symbol", value=default_sym, key=f"risk_eval_sym_{trading_lane}")
     with r_col2:
         eval_side = st.selectbox("Position Side", ["LONG (Buy)", "SHORT (Sell)"], key=f"risk_eval_side_{trading_lane}")
     with r_col3:

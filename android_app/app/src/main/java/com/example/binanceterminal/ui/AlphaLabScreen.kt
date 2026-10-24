@@ -177,20 +177,25 @@ fun AlphaLabScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "🏆 PRECIOUS METALS & CRYPTO ALPHA LAB",
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = GoldBinance,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Gold (XAU), Silver (XAG) & Bitcoin (BTC) Institutional Playbooks",
+                    text = "Gold (XAU), Silver (XAG) & Bitcoin (BTC) Playbooks",
                     fontSize = 10.sp,
-                    color = TextSecondary
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
+            Spacer(modifier = Modifier.width(6.dp))
             Surface(
                 color = GoldBinance.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(6.dp),
@@ -314,7 +319,11 @@ fun AlphaLabScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Surface(
                             color = if (direction == "LONG") TerminalGreen else TerminalRed,
                             shape = RoundedCornerShape(4.dp)
@@ -324,20 +333,26 @@ fun AlphaLabScreen(
                                 color = BgDark,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                maxLines = 1
                             )
                         }
                         Text(
                             text = "Multi-Timeframe Active Setup",
                             color = TextSecondary,
-                            fontSize = 10.sp
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "${selectedAsset.winRate}% ACC",
                         color = GoldBinance,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 
@@ -367,19 +382,25 @@ fun AlphaLabScreen(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
+                val formatPriceLevel: (Double) -> String = { p ->
+                    if (p >= 100.0) String.format(Locale.US, "%,.2f", p)
+                    else if (p >= 1.0) String.format(Locale.US, "%.3f", p)
+                    else String.format(Locale.US, "%.4f", p)
+                }
+
                 // Price levels grid
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PriceLevelCard("ENTRY (1m)", "\$$entryPrice", CyanAccent, Modifier.weight(1f))
-                    PriceLevelCard("STOP LOSS", "\$$stopLoss", TerminalRed, Modifier.weight(1f))
-                    PriceLevelCard("TP1 (1:2)", "\$$tp1", TerminalGreen, Modifier.weight(1f))
-                    PriceLevelCard("TP2 (1:5)", "\$$tp2", TerminalGreen, Modifier.weight(1f))
+                    PriceLevelCard("ENTRY (1m)", "\$${formatPriceLevel(entryPrice)}", CyanAccent, Modifier.weight(1f))
+                    PriceLevelCard("STOP LOSS", "\$${formatPriceLevel(stopLoss)}", TerminalRed, Modifier.weight(1f))
+                    PriceLevelCard("TP1 (1:2)", "\$${formatPriceLevel(tp1)}", TerminalGreen, Modifier.weight(1f))
+                    PriceLevelCard("TP2 (1:5)", "\$${formatPriceLevel(tp2)}", TerminalGreen, Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PriceLevelCard("MEGA TP (1:15)", "\$$tpMega", GoldBinance, Modifier.weight(1f))
-                    PriceLevelCard("MOONSHOT (1:500)", "\$$tp500", TerminalPurple, Modifier.weight(1f))
+                    PriceLevelCard("MEGA TP (1:15)", "\$${formatPriceLevel(tpMega)}", GoldBinance, Modifier.weight(1f))
+                    PriceLevelCard("MOONSHOT (1:500)", "\$${formatPriceLevel(tp500)}", TerminalPurple, Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -830,8 +851,17 @@ private fun PriceLevelCard(
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(6.dp)) {
-            Text(text = label, fontSize = 8.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-            Text(text = priceStr, fontSize = 10.sp, color = color, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+            Text(text = label, fontSize = 8.sp, color = TextMuted, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(
+                text = priceStr,
+                fontSize = 10.sp,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                softWrap = false,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
         }
     }
 }

@@ -90,6 +90,7 @@ fun ProChartScreen(
 
         // Expanded baseline universe to form a dense, organic crypto bubble cloud
         val standardUniverse = listOf(
+            BubbleOpportunity("PAXG/USDT", "LONG", "🏛️ Smart Money Concepts (Gold Leader)", 14.5, 4.2, 95.5, 2735.0, 2690.0, 2790.0, 2845.0, 3100.0),
             BubbleOpportunity("PEPE/USDT", "LONG", "👑 Candle King Geometry", 145.0, 9.2, 97.5, 0.0000095, 0.0000088, 0.0000105, 0.0000114, 0.0000215),
             BubbleOpportunity("SOL/USDT", "LONG", "🏛️ Smart Money Concepts (SMC)", 28.5, 4.5, 94.0, 182.0, 172.0, 200.0, 218.0, 280.0),
             BubbleOpportunity("BTC/USDT", "LONG", "⚡ Bollinger Squeeze Volatility Coil", 18.0, 3.8, 95.0, 82050.0, 79200.0, 90250.0, 98460.0, 125000.0),
@@ -243,7 +244,7 @@ fun ProChartScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
                                     color = if (activeBubble.direction == "LONG") TerminalGreen.copy(alpha = 0.2f) else TerminalRed.copy(alpha = 0.2f),
@@ -264,7 +265,9 @@ fun ProChartScreen(
                                     color = TextPrimary,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = FontFamily.Monospace,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                             Spacer(modifier = Modifier.height(2.dp))
@@ -272,7 +275,9 @@ fun ProChartScreen(
                                 text = "Strategy: ${activeBubble.strategyName}",
                                 color = TerminalCyan,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
 
@@ -295,7 +300,7 @@ fun ProChartScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Strategy Key Metrics Row
+                    // Strategy Key Metrics (2 Clean Spacious Rows)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -303,8 +308,17 @@ fun ProChartScreen(
                         LevelCard(title = "ENTRY", value = "$${formatPrice(activeBubble.entryPrice)}", color = TextGold, modifier = Modifier.weight(1f))
                         LevelCard(title = "STOP LOSS", value = "$${formatPrice(activeBubble.stopLoss)}", color = TerminalRed, modifier = Modifier.weight(1f))
                         LevelCard(title = "TP1 (+10%)", value = "$${formatPrice(activeBubble.target10pct)}", color = TerminalGreen, modifier = Modifier.weight(1f))
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         LevelCard(title = "TP2 (+20%)", value = "$${formatPrice(activeBubble.target20pct)}", color = TerminalGreen, modifier = Modifier.weight(1f))
-                        LevelCard(title = "R:R", value = "1:${String.format("%.1f", activeBubble.riskReward)}", color = TerminalCyan, modifier = Modifier.weight(0.9f))
+                        LevelCard(title = "RUNNER TP", value = "$${formatPrice(activeBubble.targetMega)}", color = GoldBinance, modifier = Modifier.weight(1f))
+                        LevelCard(title = "R:R RATIO", value = "1:${String.format("%.1f", activeBubble.riskReward)}", color = TerminalCyan, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -385,9 +399,18 @@ private fun LevelCard(
         border = androidx.compose.foundation.BorderStroke(0.5.dp, CardBorder),
         modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(4.dp)) {
-            Text(text = title, color = TextMuted, fontSize = 7.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            Text(text = value, color = color, fontSize = 9.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, maxLines = 1)
+        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 5.dp)) {
+            Text(text = title, color = TextMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(
+                text = value,
+                color = color,
+                fontSize = 11.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
         }
     }
 }

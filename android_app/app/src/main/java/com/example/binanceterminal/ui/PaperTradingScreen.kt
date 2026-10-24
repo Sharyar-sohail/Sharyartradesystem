@@ -30,8 +30,8 @@ import kotlin.math.max
 
 enum class PaperSubTab(val label: String) {
     POSITIONS("Open Trades"),
-    HISTORY("Trade History"),
-    ANALYTICS("Analytics & Win Rate")
+    HISTORY("History"),
+    ANALYTICS("Analytics")
 }
 
 @Composable
@@ -72,19 +72,24 @@ fun PaperTradingScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "💼 Paper Trading Station",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
                 Text(
                     text = "Autonomous Demo Execution & Strategy Verification",
                     fontSize = 11.sp,
-                    color = TextMuted
+                    color = TextMuted,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
+            Spacer(modifier = Modifier.width(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(
@@ -420,6 +425,22 @@ fun OpenPositionsView(
     onCloseAll: () -> Unit,
     onInspectChart: (String) -> Unit
 ) {
+    var categoryFilter by remember { mutableStateOf("ALL") }
+
+    val filteredPositions = remember(positions, categoryFilter) {
+        when (categoryFilter) {
+            "METALS_FOREX" -> positions.filter {
+                val s = it.symbol.uppercase()
+                s.contains("XAU") || s.contains("XAG") || s.contains("PAXG") || s.contains("GOLD") || s.contains("EUR") || s.contains("GBP") || s.contains("JPY") || s.contains("CHF") || s.contains("AUD") || s.contains("CAD")
+            }
+            "CRYPTO" -> positions.filter {
+                val s = it.symbol.uppercase()
+                !(s.contains("XAU") || s.contains("XAG") || s.contains("PAXG") || s.contains("GOLD") || s.contains("EUR") || s.contains("GBP") || s.contains("JPY") || s.contains("CHF") || s.contains("AUD") || s.contains("CAD"))
+            }
+            else -> positions
+        }
+    }
+
     if (positions.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -454,11 +475,40 @@ fun OpenPositionsView(
                 }
             }
 
+            // Market Category Filter Pills
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf("ALL" to "🌐 All (${positions.size})", "METALS_FOREX" to "🪙 Metals & Forex", "CRYPTO" to "🚀 Crypto").forEach { (key, label) ->
+                    val isSel = categoryFilter == key
+                    Surface(
+                        color = if (isSel) GoldBinance.copy(alpha = 0.2f) else SurfaceCard,
+                        shape = RoundedCornerShape(6.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSel) GoldBinance else BorderDim),
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { categoryFilter = key }
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 10.sp,
+                            color = if (isSel) GoldBinance else TextSecondary,
+                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(vertical = 5.dp)
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(positions, key = { it.id }) { pos ->
+                items(filteredPositions, key = { it.id }) { pos ->
                     PositionCard(
                         position = pos,
                         onClose = { onClosePosition(pos.id) },

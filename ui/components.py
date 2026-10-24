@@ -705,6 +705,7 @@ def render_role_selection_welcome_screen():
             st.write("")
             if st.button("🚀 Launch Crypto Trader Lane", type="primary", width="stretch", key="btn_welcome_select_crypto"):
                 st.session_state.trading_lane = "crypto"
+                st.session_state.selected_symbol = "BTC/USDT"
                 st.session_state.show_welcome_modal = False
                 st.session_state.welcome_modal_dismissed = True
                 st.rerun()
@@ -728,6 +729,7 @@ def render_role_selection_welcome_screen():
             st.write("")
             if st.button("🪙 Launch Forex & Metals Lane", type="primary", width="stretch", key="btn_welcome_select_metals"):
                 st.session_state.trading_lane = "forex_metals"
+                st.session_state.selected_symbol = "XAU/USD"
                 st.session_state.show_welcome_modal = False
                 st.session_state.welcome_modal_dismissed = True
                 st.rerun()
@@ -795,6 +797,7 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
                 btn_lane_text = "🚀 Crypto" if is_fx else "🪙 FX & Metals"
                 if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help="Switch between Crypto and Forex & Metals trading specialization", width="stretch"):
                     st.session_state.trading_lane = target_lane
+                    st.session_state.selected_symbol = "XAU/USD" if target_lane == "forex_metals" else "BTC/USDT"
                     st.rerun()
             with t_col1:
                 auto_val = st.toggle("⚡ Auto", value=auto_trade, key="header_master_auto_toggle", help="Toggle Autonomous Demo Execution")
@@ -973,7 +976,13 @@ def render_autonomous_trading_engine_visualizer(runner, current_symbol: str = "B
     trade_size = getattr(runner, "trade_size_usd", 100.0)
     balance = getattr(runner, "paper_balance", 10000.0)
 
-    active_pair = current_symbol if current_symbol else (pairs[scanned_count % len(pairs)] if pairs else "BTC/USDT")
+    cur_lane_vis = st.session_state.get("trading_lane", "crypto")
+    is_fx_vis = cur_lane_vis in ["metals", "forex_metals"]
+    if is_fx_vis and not ("XAU" in current_symbol or "XAG" in current_symbol or any(fx in current_symbol for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"])):
+        current_symbol = "XAU/USD"
+    elif not is_fx_vis and ("XAU" in current_symbol or "XAG" in current_symbol or any(fx in current_symbol for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"])):
+        current_symbol = "BTC/USDT"
+    active_pair = current_symbol if current_symbol else ("XAU/USD" if is_fx_vis else (pairs[scanned_count % len(pairs)] if pairs else "BTC/USDT"))
     status_pill = "🟢 ACTIVE" if (is_running and auto_trade) else ("🟡 SCANNING" if is_running else "⚪ PAUSED")
     badge_style = "background:rgba(0,229,255,0.12); color:#00E5FF; border:1px solid rgba(0,229,255,0.3);"
 

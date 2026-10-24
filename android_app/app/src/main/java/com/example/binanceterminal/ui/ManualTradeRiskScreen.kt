@@ -20,12 +20,21 @@ import com.example.binanceterminal.strategy.ManualRiskAnalysisResult
 import com.example.binanceterminal.strategy.TradingStrategies
 import com.example.binanceterminal.theme.*
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextAlign
+import java.util.Locale
 
 @Composable
 fun ManualTradeRiskScreen() {
     val scope = rememberCoroutineScope()
 
-    var allPairs by remember {
+    val forexMetalsList = remember {
+        listOf("XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "EUR/GBP")
+    }
+    var selectedCategory by remember { mutableStateOf("🪙 Metals & Forex") } // "🪙 Metals & Forex", "🚀 Crypto", "🌐 All"
+    var symbol by remember { mutableStateOf("XAU/USD") }
+    var direction by remember { mutableStateOf("LONG") }
+    var pairSearchQuery by remember { mutableStateOf("") }
+    var cryptoPairs by remember {
         mutableStateOf(
             listOf(
                 "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "DOGE/USDT", "XRP/USDT",
@@ -33,40 +42,46 @@ fun ManualTradeRiskScreen() {
             )
         )
     }
-    var pairSearchQuery by remember { mutableStateOf("") }
-
-    var symbol by remember { mutableStateOf("BTC/USDT") }
-    var direction by remember { mutableStateOf("LONG") }
-    var entryPriceStr by remember { mutableStateOf("") }
-    var stopLossStr by remember { mutableStateOf("") }
-    var takeProfitStr by remember { mutableStateOf("") }
+    var entryPriceStr by remember { mutableStateOf("2735.50") }
+    var stopLossStr by remember { mutableStateOf("2694.45") }
+    var takeProfitStr by remember { mutableStateOf("2831.25") }
     var positionSizeStr by remember { mutableStateOf("100.0") } // $100 default margin/size
+
+    val formatInputPrice: (Double) -> String = { p ->
+        if (p >= 10.0) String.format(Locale.US, "%.2f", p) else String.format(Locale.US, "%.4f", p)
+    }
 
     var isAnalyzing by remember { mutableStateOf(false) }
     var analysisResult by remember { mutableStateOf<ManualRiskAnalysisResult?>(null) }
     val portfolioList = remember { mutableStateListOf<ManualRiskAnalysisResult>() }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Dynamic Full Binance Pair Loading (Zero Hardcoding)
+    // Dynamic Full Binance Pair Loading
     LaunchedEffect(Unit) {
         val loaded = BinanceApiClient.getAllActivePairs("USDT")
         if (loaded.isNotEmpty()) {
-            allPairs = loaded
+            cryptoPairs = loaded
         }
-        val p = BinanceApiClient.getTickerPrice("BTC/USDT")
-        if (p != null) {
-            entryPriceStr = String.format("%.4f", p)
-            stopLossStr = String.format("%.4f", p * 0.97)
-            takeProfitStr = String.format("%.4f", p * 1.10)
+        val pGold = BinanceApiClient.getTickerPrice("PAXG/USDT") ?: 2735.50
+        entryPriceStr = formatInputPrice(pGold)
+        stopLossStr = formatInputPrice(pGold * 0.985)
+        takeProfitStr = formatInputPrice(pGold * 1.035)
+    }
+
+    val availablePairs = remember(selectedCategory, cryptoPairs, forexMetalsList) {
+        when (selectedCategory) {
+            "🪙 Metals & Forex" -> forexMetalsList
+            "🚀 Crypto" -> cryptoPairs
+            else -> forexMetalsList + cryptoPairs
         }
     }
 
-    val filteredPairs = remember(pairSearchQuery, allPairs) {
+    val filteredPairs = remember(pairSearchQuery, availablePairs) {
         if (pairSearchQuery.isBlank()) {
-            allPairs.take(15)
+            availablePairs.take(20)
         } else {
             val q = pairSearchQuery.trim().uppercase()
-            allPairs.filter { it.contains(q) }.take(30)
+            availablePairs.filter { it.contains(q) }.take(35)
         }
     }
 
@@ -93,7 +108,7 @@ fun ManualTradeRiskScreen() {
             )
         }
 
-        // Pair Search & Selection
+        // Pair Search & Selection with Market Category Isolation
         item {
             Surface(
                 color = SurfaceDark,
@@ -101,18 +116,74 @@ fun ManualTradeRiskScreen() {
                 border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(
-                        text = "DYNAMIC BINANCE PAIR SELECTOR (${allPairs.size} ACTIVE PAIRS)",
-                        color = TerminalCyan,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "MARKET ARENA & PAIR SELECTOR",
+                            color = TerminalCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "${availablePairs.size} Pairs Available",
+                            color = TextMuted,
+                            fontSize = 9.sp
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
+
+                    // Category Filter Pills (Metals & Forex vs Crypto)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("🪙 Metals & Forex", "🚀 Crypto", "🌐 All").forEach { cat ->
+                            val isSel = selectedCategory == cat
+                            Surface(
+                                color = if (isSel) GoldBinance.copy(alpha = 0.2f) else SurfaceCard,
+                                shape = RoundedCornerShape(8.dp),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    1.dp,
+                                    if (isSel) GoldBinance else CardBorder
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        selectedCategory = cat
+                                        if (cat == "🪙 Metals & Forex" && !forexMetalsList.contains(symbol)) {
+                                            symbol = "XAU/USD"
+                                            scope.launch {
+                                                val pGold = BinanceApiClient.getTickerPrice("PAXG/USDT") ?: 2735.50
+                                                entryPriceStr = formatInputPrice(pGold)
+                                                stopLossStr = formatInputPrice(if (direction == "LONG") pGold * 0.985 else pGold * 1.015)
+                                                takeProfitStr = formatInputPrice(if (direction == "LONG") pGold * 1.035 else pGold * 0.965)
+                                            }
+                                        }
+                                    }
+                            ) {
+                                Text(
+                                    text = cat,
+                                    color = if (isSel) GoldBinance else TextSecondary,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = pairSearchQuery,
                         onValueChange = { pairSearchQuery = it },
-                        placeholder = { Text("Search 500+ active pairs (e.g. BTC, SOL, PEPE, SUI)...", fontSize = 11.sp) },
+                        placeholder = { Text("Search pairs (e.g. XAU/USD, EUR, BTC, SOL)...", fontSize = 11.sp) },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
                         singleLine = true
@@ -121,30 +192,58 @@ fun ManualTradeRiskScreen() {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(filteredPairs) { sym ->
                             val isSelected = symbol == sym
+                            val isMetal = sym.contains("XAU") || sym.contains("XAG")
+                            val isFx = sym.contains("EUR") || sym.contains("GBP") || sym.contains("JPY") || sym.contains("CHF") || sym.contains("AUD") || sym.contains("CAD") || sym.contains("NZD")
+                            val badgeColor = if (isMetal) GoldBinance else if (isFx) TerminalGreen else TerminalCyan
+
                             Surface(
-                                color = if (isSelected) TerminalCyan.copy(alpha = 0.25f) else SurfaceCard,
+                                color = if (isSelected) badgeColor.copy(alpha = 0.25f) else SurfaceCard,
                                 shape = RoundedCornerShape(14.dp),
                                 border = androidx.compose.foundation.BorderStroke(
                                     1.dp,
-                                    if (isSelected) TerminalCyan else CardBorder
+                                    if (isSelected) badgeColor else CardBorder
                                 ),
                                 modifier = Modifier.clickable {
                                     symbol = sym
                                     scope.launch {
-                                        val p = BinanceApiClient.getTickerPrice(sym)
-                                        if (p != null) {
-                                            entryPriceStr = String.format("%.4f", p)
-                                            val sl = if (direction == "LONG") p * 0.97 else p * 1.03
-                                            val tp = if (direction == "LONG") p * 1.10 else p * 0.90
-                                            stopLossStr = String.format("%.4f", sl)
-                                            takeProfitStr = String.format("%.4f", tp)
+                                        if (sym == "XAU/USD") {
+                                            val p = BinanceApiClient.getTickerPrice("PAXG/USDT") ?: 2735.50
+                                            entryPriceStr = formatInputPrice(p)
+                                            stopLossStr = formatInputPrice(if (direction == "LONG") p * 0.985 else p * 1.015)
+                                            takeProfitStr = formatInputPrice(if (direction == "LONG") p * 1.035 else p * 0.965)
+                                        } else if (sym == "XAG/USD") {
+                                            val p = (BinanceApiClient.getTickerPrice("PAXG/USDT") ?: 2735.50) / 81.5
+                                            entryPriceStr = formatInputPrice(p)
+                                            stopLossStr = formatInputPrice(if (direction == "LONG") p * 0.98 else p * 1.02)
+                                            takeProfitStr = formatInputPrice(if (direction == "LONG") p * 1.05 else p * 0.95)
+                                        } else if (isFx) {
+                                            val fxDefault = when {
+                                                sym.contains("EUR") -> 1.0850
+                                                sym.contains("GBP") -> 1.2980
+                                                sym.contains("JPY") -> 152.30
+                                                sym.contains("CHF") -> 0.8670
+                                                sym.contains("AUD") -> 0.6580
+                                                else -> 1.3890
+                                            }
+                                            entryPriceStr = formatInputPrice(fxDefault)
+                                            stopLossStr = formatInputPrice(if (direction == "LONG") fxDefault * 0.995 else fxDefault * 1.005)
+                                            takeProfitStr = formatInputPrice(if (direction == "LONG") fxDefault * 1.015 else fxDefault * 0.985)
+                                        } else {
+                                            val p = BinanceApiClient.getTickerPrice(sym)
+                                            if (p != null) {
+                                                entryPriceStr = formatInputPrice(p)
+                                                val sl = if (direction == "LONG") p * 0.97 else p * 1.03
+                                                val tp = if (direction == "LONG") p * 1.10 else p * 0.90
+                                                stopLossStr = formatInputPrice(sl)
+                                                takeProfitStr = formatInputPrice(tp)
+                                            }
                                         }
                                     }
                                 }
                             ) {
                                 Text(
                                     text = sym,
-                                    color = if (isSelected) TerminalCyan else TextSecondary,
+                                    color = if (isSelected) badgeColor else TextSecondary,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
@@ -248,34 +347,37 @@ fun ManualTradeRiskScreen() {
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Entry, SL, TP
+                    // Entry, SL, TP (2 Clean Spacious Rows: Full Width Entry, 2-Column SL/TP)
+                    OutlinedTextField(
+                        value = entryPriceStr,
+                        onValueChange = { entryPriceStr = it },
+                        label = { Text("Entry Price ($)", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Live Market Price", fontSize = 11.sp) },
+                        textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 13.sp, fontFamily = FontFamily.Monospace),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        OutlinedTextField(
-                            value = entryPriceStr,
-                            onValueChange = { entryPriceStr = it },
-                            label = { Text("Entry Price", fontSize = 10.sp) },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("Live Price", fontSize = 10.sp) },
-                            textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
-                            singleLine = true
-                        )
                         OutlinedTextField(
                             value = stopLossStr,
                             onValueChange = { stopLossStr = it },
-                            label = { Text("Stop Loss (SL)", fontSize = 10.sp) },
+                            label = { Text("Stop Loss (SL)", fontSize = 11.sp, color = TerminalRed) },
                             modifier = Modifier.weight(1f),
-                            textStyle = androidx.compose.ui.text.TextStyle(color = TerminalRed, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = TerminalRed, fontSize = 13.sp, fontFamily = FontFamily.Monospace),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = takeProfitStr,
                             onValueChange = { takeProfitStr = it },
-                            label = { Text("Take Profit (TP)", fontSize = 10.sp) },
+                            label = { Text("Take Profit (TP)", fontSize = 11.sp, color = TerminalGreen) },
                             modifier = Modifier.weight(1f),
-                            textStyle = androidx.compose.ui.text.TextStyle(color = TerminalGreen, fontSize = 12.sp, fontFamily = FontFamily.Monospace),
+                            textStyle = androidx.compose.ui.text.TextStyle(color = TerminalGreen, fontSize = 13.sp, fontFamily = FontFamily.Monospace),
                             singleLine = true
                         )
                     }
