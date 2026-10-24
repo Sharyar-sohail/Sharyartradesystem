@@ -36,6 +36,7 @@ fun RadarScreen(
     val universeCount by BackgroundMarketScanner.universeSize.collectAsState()
     val scope = rememberCoroutineScope()
 
+    var selectedArena by remember { mutableStateOf("ALL") } // "ALL", "METALS_FOREX", "CRYPTO"
     var selectedDir by remember { mutableStateOf("ALL") }
     var selectedHorizon by remember { mutableStateOf("ALL") }
     var selectedStatus by remember { mutableStateOf("ALL") }
@@ -54,7 +55,18 @@ fun RadarScreen(
             "RESOLVED" -> sig.status != "ACTIVE"
             else -> true
         }
-        dirMatch && horizonMatch && statusMatch
+        val arenaMatch = when (selectedArena) {
+            "METALS_FOREX" -> {
+                val s = sig.symbol.uppercase()
+                s.contains("XAU") || s.contains("XAG") || s.contains("PAXG") || s.contains("GOLD") || s.contains("EUR") || s.contains("GBP") || s.contains("JPY") || s.contains("CHF") || s.contains("AUD") || s.contains("CAD")
+            }
+            "CRYPTO" -> {
+                val s = sig.symbol.uppercase()
+                !(s.contains("XAU") || s.contains("XAG") || s.contains("PAXG") || s.contains("GOLD") || s.contains("EUR") || s.contains("GBP") || s.contains("JPY") || s.contains("CHF") || s.contains("AUD") || s.contains("CAD"))
+            }
+            else -> true
+        }
+        dirMatch && horizonMatch && statusMatch && arenaMatch
     }
 
     Column(
@@ -154,11 +166,20 @@ fun RadarScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Filter Chips Row
+        // Filter Chips Row (Arena + Direction + Precision)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
+            item {
+                FilterChipItem(label = "🌐 All", isSelected = selectedArena == "ALL") { selectedArena = "ALL" }
+            }
+            item {
+                FilterChipItem(label = "🪙 Metals & Forex", isSelected = selectedArena == "METALS_FOREX") { selectedArena = "METALS_FOREX" }
+            }
+            item {
+                FilterChipItem(label = "🚀 Crypto", isSelected = selectedArena == "CRYPTO") { selectedArena = "CRYPTO" }
+            }
             item {
                 FilterChipItem(label = "All Dirs", isSelected = selectedDir == "ALL") { selectedDir = "ALL" }
             }
