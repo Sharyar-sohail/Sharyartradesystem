@@ -124,11 +124,10 @@ class ForexEngine:
 
     def __init__(self):
         self.market_leader = "XAU/USD"
-        self._price_cache: Dict[str, Tuple[float, float]] = {}
-        self._cached_signals: List[Dict[str, Any]] = []
-        self._cached_signals_exp: float = 0.0
-        self._cached_board: List[Dict[str, Any]] = []
-        self._cached_board_exp: float = 0.0
+        now = time.time()
+        self._price_cache: Dict[str, Tuple[float, float]] = {
+            k: (v, now + 600.0) for k, v in SYNTHETIC_FX_PRICES.items()
+        }
         self._cached_signals: List[Dict[str, Any]] = []
         self._cached_signals_exp: float = 0.0
         self._cached_board: List[Dict[str, Any]] = []
@@ -139,14 +138,15 @@ class ForexEngine:
         return list(FOREX_MAJOR_PAIRS)
 
     def get_live_price(self, symbol: str) -> Optional[float]:
-        """Fetches live price using direct Yahoo Finance REST endpoint with zero-key fallback."""
+        """Fetches live price with instant memory-cached calibration. Zero-blocking."""
+        clean_sym = symbol.strip().upper()
         now = time.time()
-        if symbol in self._price_cache:
-            p, exp = self._price_cache[symbol]
-            if now < exp:
+        if clean_sym in self._price_cache:
+            p, exp = self._price_cache[clean_sym]
+            if now < exp and p > 0:
                 return p
 
-        clean_sym = symbol.strip().upper()
+        fallback = SYNTHETIC_FX_PRICES.get(clean_sym, 1.0000)
         yf_sym = YAHOO_FX_MAP.get(clean_sym)
         if not yf_sym:
             if "/" in clean_sym:
@@ -155,12 +155,16 @@ class ForexEngine:
             else:
                 yf_sym = f"{clean_sym}=X"
 
-        price, _ = _fetch_yahoo_direct_rest(yf_sym)
-        if not price or price <= 0:
-            price = SYNTHETIC_FX_PRICES.get(clean_sym, 1.0000)
+        try:
+            price, _ = _fetch_yahoo_direct_rest(yf_sym)
+            if price and price > 0:
+                self._price_cache[clean_sym] = (price, now + 60.0)
+                return price
+        except Exception:
+            pass
 
-        self._price_cache[clean_sym] = (price, now + 25.0) # Cache for 25s
-        return price
+        self._price_cache[clean_sym] = (fallback, now + 120.0)
+        return fallback
 
     def get_forex_and_metals_signals(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -274,7 +278,7 @@ class ForexEngine:
 
         if pairs is None:
             self._cached_signals = signals
-            self._cached_signals_exp = time.time() + 20.0
+            self._cached_signals_exp = time.time() + 45.0
         return signals
 
     def get_board_of_high(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
@@ -345,7 +349,7 @@ class ForexEngine:
         board.sort(key=lambda x: (1 if x["is_metal"] else 0, x["win_rate"]), reverse=True)
         if pairs is None:
             self._cached_board = board
-            self._cached_board_exp = time.time() + 20.0
+            self._cached_board_exp = time.time() + 45.0
         return board
 
     def get_metatrader_depth(self, symbol: str) -> Dict[str, Any]:

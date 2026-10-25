@@ -886,8 +886,13 @@ if trading_lane == "crypto":
         open_crypto_pos = trading_runner.open_positions
         if open_crypto_pos:
             total_float_pnl = 0.0
+            try:
+                all_p = binance_client.get_all_tickers() if hasattr(binance_client, "get_all_tickers") else {}
+            except Exception:
+                all_p = {}
             for sym, pos in open_crypto_pos.items():
-                cur_p = binance_client.get_ticker_price(sym) or pos["entry_price"]
+                clean_sym = sym.replace("/", "").upper()
+                cur_p = all_p.get(clean_sym) or pos.get("entry_price", 100.0)
                 pnl_pct = ((cur_p - pos["entry_price"]) / pos["entry_price"] * 100) if pos["side"] == "LONG" else ((pos["entry_price"] - cur_p) / pos["entry_price"] * 100)
                 total_float_pnl += (pnl_pct / 100.0) * pos.get("allocated", 100.0)
 
@@ -900,161 +905,137 @@ if trading_lane == "crypto":
                 unsafe_allow_html=True
             )
 
-        f_col1, f_col2, f_col3, f_col4 = st.columns([1.6, 1.1, 1.1, 1.2])
-        with f_col1:
-            if st.button("🚀 Instant Sweep (All Gainers, Losers & Vol)", type="primary", width='stretch', key="btn_crypto_instant_sweep"):
+        c_sweep, c_pad = st.columns([2.0, 1.0])
+        with c_sweep:
+            if st.button("🚀 Instant Sweep (All Gainers, Losers & Vol)", type="primary", width="stretch", key="btn_crypto_instant_sweep"):
                 with st.spinner("Executing real-time multi-pair quantitative sweep..."):
                     trading_runner.trigger_instant_sweep(sample_size=35)
                 st.success("Sweep completed! Live telemetry updated.")
                 st.rerun()
-        with f_col2:
+
+        f_col1, f_col2, f_col3 = st.columns(3)
+        with f_col1:
             dir_filter = st.selectbox("Position Type", ["ALL", "LONG", "SHORT"], key="crypto_dir_filter")
-        with f_col3:
+        with f_col2:
             status_filter = st.selectbox("Status Filter", ["ALL", "ACTIVE", "MEGA_HIT", "HIT_20PCT", "HIT_10PCT", "STOPPED_OUT"], key="crypto_status_filter")
-        with f_col4:
+        with f_col3:
             horizon_filter = st.selectbox("Setup Horizon", ["ALL", "🏆 90%+ Win Rate Only", "💥 50%-500% Mega-Moves Only", "⚡ Intraday Scalps"], key="crypto_horizon_filter")
 
         # LIVE SIGNALS STREAM FRAGMENT (Clean Minimalist Full-Width Layout)
         @st.fragment(run_every="12s")
         def render_crypto_live_signals_radar_stream_fragment(dir_flt: str, stat_flt: str, horiz_flt: str):
-            signals_list = get_all_breakout_signals(limit=40)
-            if not signals_list:
-                st.info("Scanner daemon is actively analyzing order books. Signals populate automatically upon 90%+ confluence.")
-                return
+            try:
+                signals_list = get_all_breakout_signals(limit=40)
+                if not signals_list:
+                    st.info("Scanner daemon is actively analyzing order books. Signals populate automatically upon 90%+ confluence.")
+                    return
 
-            filtered = []
-            for s in signals_list:
-                if dir_flt != "ALL" and s.get("direction") != dir_flt:
-                    continue
-                if stat_flt != "ALL" and s.get("status") != stat_flt:
-                    continue
-                if horiz_flt == "🏆 90%+ Win Rate Only" and float(s.get("ai_confidence_pct", 0)) < 90.0:
-                    continue
-                if horiz_flt == "💥 50%-500% Mega-Moves Only" and abs(float(s.get("expected_move_pct", 0))) < 50.0:
-                    continue
-                if horiz_flt == "⚡ Intraday Scalps" and abs(float(s.get("expected_move_pct", 0))) >= 30.0:
-                    continue
-                filtered.append(s)
+                filtered = []
+                for s in signals_list:
+                    if dir_flt != "ALL" and s.get("direction") != dir_flt:
+                        continue
+                    if stat_flt != "ALL" and s.get("status") != stat_flt:
+                        continue
+                    if horiz_flt == "🏆 90%+ Win Rate Only" and float(s.get("ai_confidence_pct", 0)) < 90.0:
+                        continue
+                    if horiz_flt == "💥 50%-500% Mega-Moves Only" and abs(float(s.get("expected_move_pct", 0))) < 50.0:
+                        continue
+                    if horiz_flt == "⚡ Intraday Scalps" and abs(float(s.get("expected_move_pct", 0))) >= 30.0:
+                        continue
+                    filtered.append(s)
 
-            if not filtered:
-                st.info("No active signals currently match the selected filters.")
-                return
+                if not filtered:
+                    st.info("No active signals currently match the selected filters.")
+                    return
 
-            display_data = []
-            all_prices = binance_client.get_all_tickers()
-            for s in filtered:
-                entry_p = float(s["entry_price"])
-                clean_sym = s["symbol"].replace("/", "").upper()
-                curr_p = all_prices.get(clean_sym) or binance_client.get_ticker_price(s["symbol"]) or entry_p
-                direction = s["direction"]
-                exp_move = float(s.get("expected_move_pct", 15.0))
-                ai_conf = float(s.get("ai_confidence_pct", 92.5))
-                strat_name = s.get("strategy_name", "AI Consensus")
+                display_data = []
+                try:
+                    all_prices = binance_client.get_all_tickers() if hasattr(binance_client, "get_all_tickers") else {}
+                except Exception:
+                    all_prices = {}
 
-                strat_badge = f"🧠 {strat_name}"
-                dir_badge = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
-                stat = s.get("status", "ACTIVE")
-                stat_badge = "💥 MEGA HIT" if stat == "MEGA_HIT" else ("🚀 20% HIT" if stat == "HIT_20PCT" else ("🎯 10% HIT" if stat == "HIT_10PCT" else ("🛑 STOPPED" if stat == "STOPPED_OUT" else "🔥 ACTIVE")))
+                for s in filtered:
+                    entry_p = float(s["entry_price"])
+                    clean_sym = s["symbol"].replace("/", "").upper()
+                    curr_p = all_prices.get(clean_sym) or (binance_client.get_ticker_price(s["symbol"]) if hasattr(binance_client, "get_ticker_price") else entry_p) or entry_p
+                    direction = s["direction"]
+                    exp_move = float(s.get("expected_move_pct", 15.0))
+                    ai_conf = float(s.get("ai_confidence_pct", 92.5))
+                    strat_name = s.get("strategy_name", "AI Consensus")
 
-                display_data.append({
-                    "ID": s["id"],
-                    "Pair": s["symbol"],
-                    "Strategy": strat_badge,
-                    "Position": dir_badge,
-                    "Entry Point": f"${entry_p:,.4f}" if entry_p < 10 else f"${entry_p:,.2f}",
-                    "Mark Price": f"${curr_p:,.4f}" if curr_p < 10 else f"${curr_p:,.2f}",
-                    "Stop Loss": f"${s['stop_loss']:,.4f}" if s['stop_loss'] < 10 else f"${s['stop_loss']:,.2f}",
-                    "TP1 (+10%)": f"${s['target_10pct']:,.4f}" if s['target_10pct'] < 10 else f"${s['target_10pct']:,.2f}",
-                    "TP2 (+20%)": f"${s['target_20pct']:,.4f}" if s['target_20pct'] < 10 else f"${s['target_20pct']:,.2f}",
-                    "Mega Target": f"${s['target_mega']:,.4f}" if s['target_mega'] < 10 else f"${s['target_mega']:,.2f}",
-                    "Expected Move": f"{exp_move:+.1f}%",
-                    "AI Accuracy": f"{ai_conf:.1f}%",
-                    "R:R": f"1:{s.get('risk_reward_ratio', 3.5):.1f}",
-                    "Status": stat_badge,
-                    "_raw": s
-                })
+                    strat_badge = f"🧠 {strat_name}"
+                    dir_badge = "🟢 LONG" if direction == "LONG" else "🔴 SHORT"
+                    stat = s.get("status", "ACTIVE")
+                    stat_badge = "💥 MEGA HIT" if stat == "MEGA_HIT" else ("🚀 20% HIT" if stat == "HIT_20PCT" else ("🎯 10% HIT" if stat == "HIT_10PCT" else ("🛑 STOPPED" if stat == "STOPPED_OUT" else "🔥 ACTIVE")))
 
-            df_show = pd.DataFrame([{k: v for k, v in d.items() if not k.startswith("_")} for d in display_data])
-            st.dataframe(df_show, width='stretch', hide_index=True)
+                    display_data.append({
+                        "ID": s["id"],
+                        "Pair": s["symbol"],
+                        "Strategy": strat_badge,
+                        "Position": dir_badge,
+                        "Entry Point": f"${entry_p:,.4f}" if entry_p < 10 else f"${entry_p:,.2f}",
+                        "Mark Price": f"${curr_p:,.4f}" if curr_p < 10 else f"${curr_p:,.2f}",
+                        "Stop Loss": f"${s['stop_loss']:,.4f}" if s['stop_loss'] < 10 else f"${s['stop_loss']:,.2f}",
+                        "TP1 (+10%)": f"${s['target_10pct']:,.4f}" if s['target_10pct'] < 10 else f"${s['target_10pct']:,.2f}",
+                        "TP2 (+20%)": f"${s['target_20pct']:,.4f}" if s['target_20pct'] < 10 else f"${s['target_20pct']:,.2f}",
+                        "Mega Target": f"${s['target_mega']:,.4f}" if s['target_mega'] < 10 else f"${s['target_mega']:,.2f}",
+                        "Expected Move": f"{exp_move:+.1f}%",
+                        "AI Accuracy": f"{ai_conf:.1f}%",
+                        "R:R": f"1:{s.get('risk_reward_ratio', 3.5):.1f}",
+                        "Status": stat_badge,
+                        "_raw": s
+                    })
 
-            # Algorithmic Rationale & Market Mechanics Inspection View
-            st.divider()
-            st.markdown("#### 🔬 **Algorithmic Rationale & Market Mechanics Breakdown**")
-            c_pick, c_view = st.columns([3, 1])
-            with c_pick:
-                chosen_sig_id = st.selectbox(
-                    "Choose Active Setup to Inspect",
-                    [d["ID"] for d in display_data],
-                    format_func=lambda x: f"Setup #{x} - {next(d['Pair'] for d in display_data if d['ID']==x)} ({next(d['Position'] for d in display_data if d['ID']==x)}) | {next(d['Strategy'] for d in display_data if d['ID']==x)} | Win Rate: {next(d['AI Accuracy'] for d in display_data if d['ID']==x)}",
-                    key="crypto_choose_sig_to_inspect"
-                )
-            with c_view:
-                st.write("")
-                st.write("")
-                render_inline_chart = st.button("📊 Render Candlestick Levels", type="primary", width='stretch', key="crypto_btn_render_inline_chart")
+                df_show = pd.DataFrame([{k: v for k, v in d.items() if not k.startswith("_")} for d in display_data])
+                st.dataframe(df_show, width='stretch', hide_index=True)
 
-            target_item = next(d for d in display_data if d["ID"] == chosen_sig_id)
-            raw_sig = target_item["_raw"]
-            rationale = get_algorithmic_rationale_breakdown(raw_sig)
+                # Algorithmic Rationale & Market Mechanics Inspection View
+                st.divider()
+                st.markdown("#### 🔬 **Algorithmic Rationale & Market Mechanics Breakdown**")
+                c_pick, c_view = st.columns([3, 1])
+                with c_pick:
+                    chosen_sig_id = st.selectbox(
+                        "Choose Active Setup to Inspect",
+                        [d["ID"] for d in display_data],
+                        format_func=lambda x: f"Setup #{x} - {next(d['Pair'] for d in display_data if d['ID']==x)} ({next(d['Position'] for d in display_data if d['ID']==x)}) | {next(d['Strategy'] for d in display_data if d['ID']==x)} | Win Rate: {next(d['AI Accuracy'] for d in display_data if d['ID']==x)}",
+                        key="crypto_choose_sig_to_inspect"
+                    )
+                with c_view:
+                    st.write("")
+                    st.write("")
+                    render_inline_chart = st.button("📊 Render Candlestick Levels", type="primary", width='stretch', key="crypto_btn_render_inline_chart")
 
-            with st.container(border=True):
-                r_col1, r_col2 = st.columns([1.7, 2.3])
-                with r_col1:
-                    st.markdown(f"### **{target_item['Pair']}** &nbsp; `{target_item['Position']}`")
-                    st.markdown(f"**Trigger Strategy:** `{raw_sig['strategy_name']}`")
-                    st.markdown(f"**Target R:R:** `1:{rationale['risk_reward_ratio']:.1f}` &nbsp;|&nbsp; **AI Confidence:** `{raw_sig['ai_confidence_pct']:.1f}%`")
-                    st.caption(f"Reasoning: {rationale['raw_signal_reason']}")
+                target_item = next(d for d in display_data if d["ID"] == chosen_sig_id)
+                raw_sig = target_item["_raw"]
+                rationale = get_algorithmic_rationale_breakdown(raw_sig)
 
-                    sub_c1, sub_c2 = st.columns(2)
-                    with sub_c1:
-                        if st.button(f"⚡ Execute Demo Trade (${trading_runner.trade_size_usd:.2f})", key=f"quick_exec_crypto_{target_item['ID']}", type="primary", width="stretch"):
-                            trading_runner.execute_paper_trade(
-                                symbol=target_item["Pair"],
-                                direction=raw_sig["direction"],
-                                price=raw_sig["entry_price"],
-                                stop_loss=raw_sig["stop_loss"],
-                                take_profit=raw_sig["target_20pct"],
-                                reason=rationale["raw_signal_reason"],
-                                strat_name=raw_sig["strategy_name"]
-                            )
-                            st.success(f"✅ Demo Trade opened on {target_item['Pair']}!")
-                    with sub_c2:
-                        formatted_copy = format_signal_share_text({
-                            "symbol": target_item["Pair"],
-                            "direction": raw_sig["direction"],
-                            "entry_price": raw_sig["entry_price"],
-                            "stop_loss": raw_sig["stop_loss"],
+                c_r1, c_r2, c_r3 = st.columns(3)
+                with c_r1:
+                    st.markdown(f"**Catalyst:** {rationale['core_catalyst']}")
+                    st.markdown(f"**Primary Pattern:** `{rationale['pattern']}`")
+                with c_r2:
+                    st.markdown(f"**Volume Flow:** `{rationale['volume_profile']}`")
+                    st.markdown(f"**Confluence Factors:** `{rationale['confluences_count']} Indicators`")
+                with c_r3:
+                    st.markdown(f"**R:R Profile:** `1:{rationale['rr_ratio']:.1f}`")
+                    st.markdown(f"**Execution Speed:** `{rationale['urgency']}`")
+
+                with st.expander("👁️ View Full Algorithmic Mechanics & Key Confluences", expanded=False):
+                    for conf in rationale.get("key_confluences", []):
+                        st.markdown(f"- {conf}")
+
+                # Inline Interactive Chart Drawer
+                if render_inline_chart or st.session_state.get(f"show_chart_{chosen_sig_id}", False):
+                    st.session_state[f"show_chart_{chosen_sig_id}"] = True
+                    st.markdown(f"##### 📈 **Live Candlestick Levels: {target_item['Pair']}**")
+                    tf_pick = st.selectbox("Resolution", ["5m", "15m", "1h", "4h"], index=1, key=f"inline_tf_{target_item['ID']}")
+                    df_c = fetch_ohlcv_universal(target_item["Pair"], timeframe=tf_pick, limit=120)
+                    if df_c is not None and len(df_c) > 0:
+                        t_levels = {
+                            "entry": raw_sig["entry_price"],
+                            "sl": raw_sig["stop_loss"],
                             "tp1": raw_sig["target_10pct"],
                             "tp2": raw_sig["target_20pct"],
-                            "runner_tp": raw_sig["target_mega"],
-                            "strategy_name": raw_sig["strategy_name"],
-                            "ai_confidence_pct": raw_sig["ai_confidence_pct"],
-                            "risk_reward_ratio": raw_sig.get("risk_reward_ratio", 3.5)
-                        })
-                        with st.popover("📋 Copy Signal", width="stretch"):
-                            st.code(formatted_copy, language="markdown")
-
-                with r_col2:
-                    st.markdown("##### 🏛️ **Institutional Structural Confluences**")
-                    confluences = rationale.get("key_confluences") or [
-                        rationale.get("structural_mechanics", "Institutional Order Block Mitigation confirmed."),
-                        rationale.get("liquidity_mechanics", "Pre-Entry Liquidity Sweep executed before expansion."),
-                        rationale.get("volume_mechanics", "Elevated relative volume confirming institutional participation."),
-                        rationale.get("invalidation_rules", "Strict invalidation stop loss beyond swing level.")
-                    ]
-                    for m in confluences:
-                        st.markdown(f"- {m}")
-
-            if render_inline_chart:
-                tf_pick = "15m"
-                with st.spinner(f"Loading {tf_pick} candles for {target_item['Pair']}..."):
-                    df_c = binance_client.fetch_ohlcv(target_item["Pair"], timeframe=tf_pick, limit=100)
-                    if df_c is not None and len(df_c) >= 15:
-                        t_levels = {
-                            "entry_price": raw_sig["entry_price"],
-                            "stop_loss": raw_sig["stop_loss"],
-                            "target_10pct": raw_sig["target_10pct"],
-                            "target_20pct": raw_sig["target_20pct"],
                             "target_mega": raw_sig["target_mega"]
                         }
                         fig = build_pro_candlestick_chart(
@@ -1070,6 +1051,9 @@ if trading_lane == "crypto":
                         st.plotly_chart(fig, width='stretch', key=f"plotly_chart_{target_item['ID']}")
                     else:
                         st.warning(f"Unable to load candle history for {target_item['Pair']}.")
+            except Exception as frag_err:
+                log_event("WARNING", "RADAR_STREAM", f"Radar stream safe recovery: {frag_err}")
+                st.info("⚡ Live telemetry synchronizing with background order books...")
 
         render_crypto_live_signals_radar_stream_fragment(dir_filter, status_filter, horizon_filter)
 

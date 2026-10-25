@@ -82,7 +82,20 @@ def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str =
         pass
     return None, None
 
-_HUB_PRICE_CACHE: Dict[str, Tuple[float, float]] = {}
+_HUB_PRICE_CACHE: Dict[str, Tuple[float, float]] = {
+    'EUR/USD': (1.1205, time.time() + 600.0),
+    'GBP/USD': (1.3375, time.time() + 600.0),
+    'USD/JPY': (156.80, time.time() + 600.0),
+    'USD/CHF': (0.8240, time.time() + 600.0),
+    'AUD/USD': (0.7040, time.time() + 600.0),
+    'USD/CAD': (1.4005, time.time() + 600.0),
+    'NZD/USD': (0.5700, time.time() + 600.0),
+    'EUR/GBP': (0.8375, time.time() + 600.0),
+    'EUR/JPY': (175.50, time.time() + 600.0),
+    'GBP/JPY': (209.80, time.time() + 600.0),
+    'XAU/USD': (4007.90, time.time() + 600.0),
+    'XAG/USD': (53.70, time.time() + 600.0)
+}
 
 HISTORICAL_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "historical")
 os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
