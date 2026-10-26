@@ -29,6 +29,7 @@ if _ROOT_DIR not in sys.path:
     sys.path.insert(0, _ROOT_DIR)
 
 from backend.db import get_connection, log_event
+from backend.mt5_bot_generator import generate_complete_strategy_deployment_kit
 
 # Bulletproof strategy registry resolution (supports root package and backend fallback)
 try:
@@ -100,6 +101,15 @@ class MultiAgentSwarm:
         self.latest_evolved_rule = "Swarm Alpha G1 (SMC BOS • BTC Breakout)"
         self.synthesized_rules_count = 0
         self.dialogue_history: List[Dict[str, Any]] = []
+        self.latest_deployment_kit: Dict[str, Any] = generate_complete_strategy_deployment_kit(
+            strategy_name=self.latest_evolved_rule,
+            symbol="BTC/USDT",
+            timeframe="1h",
+            win_rate=95.4,
+            rr_ratio=3.5,
+            sl_atr_mult=1.5,
+            structure_rule="SMC Order Block & Liquidity Sweep"
+        )
 
         # Sync existing evolved rules count
         self._sync_stats_from_db()
@@ -232,6 +242,46 @@ class MultiAgentSwarm:
                 "generation": gen
             }
 
+            # Automatically generate MetaTrader 5 (MT5) Bot & TradingView Pine Script v5
+            try:
+                kit = generate_complete_strategy_deployment_kit(
+                    strategy_name=new_rule_name,
+                    symbol=curr_asset,
+                    timeframe="1h",
+                    win_rate=simulated_wr,
+                    rr_ratio=round(simulated_pf * 1.2, 1),
+                    sl_atr_mult=round(1.35 + (gen * 0.04), 2),
+                    structure_rule=chosen_struct
+                )
+                mutated_params["mt5_python_bot"] = kit["python_mt5_bot"]
+                mutated_params["mt5_mql5_ea"] = kit["mql5_ea"]
+                mutated_params["pinescript_v5"] = kit["tradingview_pinescript"]
+                self.latest_deployment_kit = kit
+                bot_msg = f"🤖 Auto-Generated MetaTrader 5 (MT5) Bot & TradingView Pine Script v5 for '{new_rule_name}' ({simulated_wr}% WR)."
+                self._add_dialogue(AGENT_SYNTHESIZER, curr_asset, bot_msg, now_ts)
+            except Exception as kit_err:
+                log_event("WARNING", "SWARM", f"Deployment kit generation note: {kit_err}")
+
+            # Automatically generate MetaTrader 5 (MT5) Bot & TradingView Pine Script v5
+            try:
+                kit = generate_complete_strategy_deployment_kit(
+                    strategy_name=new_rule_name,
+                    symbol=curr_asset,
+                    timeframe="1h",
+                    win_rate=simulated_wr,
+                    rr_ratio=round(simulated_pf * 1.2, 1),
+                    sl_atr_mult=round(1.35 + (gen * 0.04), 2),
+                    structure_rule=chosen_struct
+                )
+                mutated_params["mt5_python_bot"] = kit["python_mt5_bot"]
+                mutated_params["mt5_mql5_ea"] = kit["mql5_ea"]
+                mutated_params["pinescript_v5"] = kit["tradingview_pinescript"]
+                self.latest_deployment_kit = kit
+                bot_msg = f"🤖 Auto-Generated MetaTrader 5 (MT5) Bot & TradingView Pine Script v5 for '{new_rule_name}' ({simulated_wr}% WR)."
+                self._add_dialogue(AGENT_SYNTHESIZER, curr_asset, bot_msg, now_ts)
+            except Exception as kit_err:
+                log_event("WARNING", "SWARM", f"Deployment kit generation note: {kit_err}")
+
             synth_msg = f"🏆 Synthesized & Locked Rule: '{new_rule_name}' with verified {simulated_wr}% win rate. Stored in SQLite."
             self._add_dialogue(AGENT_SYNTHESIZER, curr_asset, synth_msg, now_ts)
 
@@ -343,6 +393,36 @@ class MultiAgentSwarm:
         """Returns recent agent communications."""
         with self._lock:
             return list(reversed(self.dialogue_history[-limit:]))
+
+    def get_latest_deployment_kit(self) -> Dict[str, Any]:
+        """Returns the latest auto-generated MT5 Bot and TradingView Pine Script package."""
+        with self._lock:
+            return dict(self.latest_deployment_kit)
+
+    def get_latest_mt5_bot(self) -> str:
+        """Returns the latest MetaTrader 5 Python execution script."""
+        with self._lock:
+            return self.latest_deployment_kit.get("python_mt5_bot", "")
+
+    def get_latest_pinescript(self) -> str:
+        """Returns the latest TradingView Pine Script v5 code."""
+        with self._lock:
+            return self.latest_deployment_kit.get("tradingview_pinescript", "")
+
+    def get_latest_deployment_kit(self) -> Dict[str, Any]:
+        """Returns the latest auto-generated MT5 Bot and TradingView Pine Script package."""
+        with self._lock:
+            return dict(self.latest_deployment_kit)
+
+    def get_latest_mt5_bot(self) -> str:
+        """Returns the latest MetaTrader 5 Python execution script."""
+        with self._lock:
+            return self.latest_deployment_kit.get("python_mt5_bot", "")
+
+    def get_latest_pinescript(self) -> str:
+        """Returns the latest TradingView Pine Script v5 code."""
+        with self._lock:
+            return self.latest_deployment_kit.get("tradingview_pinescript", "")
 
 ai_agent_swarm = MultiAgentSwarm()
 

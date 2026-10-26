@@ -1816,45 +1816,81 @@ def build_sparkline_figure(prices: List[float], is_positive: bool = True) -> go.
     )
     return fig
 
+def _get_asset_icon(sym: str) -> str:
+    s = sym.upper()
+    if "BTC" in s:
+        return "₿"
+    if "ETH" in s:
+        return "Ξ"
+    if "SOL" in s:
+        return "☀️"
+    if "BNB" in s:
+        return "🟡"
+    if "XAU" in s:
+        return "🥇"
+    if "XAG" in s:
+        return "🥈"
+    if "EUR" in s:
+        return "💶"
+    if "GBP" in s:
+        return "💷"
+    if "JPY" in s:
+        return "💴"
+    return "🪙"
+
 def render_cmc_mini_sparkline_cards(movers: List[Dict[str, Any]]):
     """
-    Renders a CoinMarketCap-style grid of top assets with live mini sparkline charts.
+    Renders an ultra-compact, ticker-style inline display for key movers and market leaders,
+    replacing bulky multi-column boxes and heavy Plotly WebGL figures with a sleek, responsive,
+    ~34px inline strip that optimizes mobile layout hierarchy and eliminates scroll fatigue.
     """
     if not movers:
         return
-        
-    num_cards = min(len(movers), 4)
-    cols = st.columns(num_cards)
-    for i in range(num_cards):
-        m = movers[i]
-        with cols[i]:
-            with st.container(border=True):
-                sym = m.get("symbol", "BTC/USDT")
-                price = float(m.get("price") or m.get("entry_price") or 1.0)
-                chg = float(m.get("change_pct") or m.get("expected_move_pct") or 5.0)
-                is_pos = chg >= 0
-                strat = m.get("strategy_name", m.get("strategy", "AI Dynamic Consensus"))
-                
-                c_left, c_right = st.columns([1.5, 1.0])
-                with c_left:
-                    st.markdown(f"**{sym}**")
-                    if "/" in sym and "USDT" not in sym and "USD" in sym and "XAU" not in sym and "XAG" not in sym:
-                        fmt_p = f"{price:.5f}"
-                    elif price >= 10:
-                        fmt_p = f"${price:,.2f}"
-                    else:
-                        fmt_p = f"${price:,.4f}"
-                    st.markdown(f"`{fmt_p}`")
-                with c_right:
-                    delta_color = "normal" if is_pos else "inverse"
-                    st.metric(label="", value=f"{chg:+.1f}%", label_visibility="collapsed")
-                
-                # Sparkline
-                spark_prices = m.get("sparkline_prices") or []
-                fig_sp = build_sparkline_figure(spark_prices, is_positive=is_pos)
-                clean_sym = sym.replace('/', '_').replace('=', '_')
-                st.plotly_chart(fig_sp, width="stretch", config={"displayModeBar": False}, key=f"sparkline_card_fig_{i}_{clean_sym}")
-                st.caption(f"Playbook: `{strat}`")
+
+    items_html = []
+    for m in movers[:4]:
+        sym = m.get("symbol", "BTC/USDT")
+        price = float(m.get("price") or m.get("entry_price") or 1.0)
+        chg = float(m.get("change_pct") or m.get("expected_move_pct") or 0.0)
+        is_pos = chg >= 0
+        strat = m.get("strategy_name", m.get("strategy", "AI Dynamic Consensus"))
+        strat_short = strat.split("(")[0].replace("Smart Money Concepts", "SMC").strip()
+        if len(strat_short) > 22:
+            strat_short = strat_short[:20] + "…"
+
+        if "/" in sym and "USDT" not in sym and "USD" in sym and "XAU" not in sym and "XAG" not in sym:
+            fmt_p = f"{price:.5f}"
+        elif price >= 10:
+            fmt_p = f"${price:,.2f}"
+        else:
+            fmt_p = f"${price:,.4f}"
+
+        icon = _get_asset_icon(sym)
+        chg_cls = "m-up" if is_pos else "m-down"
+        chg_sign = "+" if is_pos else ""
+
+        is_right_side = is_pos or "Leader" in strat or "Absorption" in strat or "Consensus" in strat or "SMC" in strat
+        side_badge = '<span style="background:rgba(0,230,153,0.12); color:#00e699; border:1px solid rgba(0,230,153,0.3); border-radius:4px; padding:1px 5px; font-size:0.68rem; font-weight:700; margin-left:4px;">🟢 RIGHT SIDE</span>' if is_right_side else '<span style="background:rgba(255,77,109,0.12); color:#ff4d6d; border:1px solid rgba(255,77,109,0.3); border-radius:4px; padding:1px 5px; font-size:0.68rem; font-weight:700; margin-left:4px;">🔴 WRONG SIDE</span>'
+
+        chip = f"""<div class="metric-item">
+            <span class="m-icon">{icon}</span>
+            <span class="m-label">{sym}:</span>
+            <span class="m-val">{fmt_p}</span>
+            <span class="{chg_cls}">{chg_sign}{chg:.1f}%</span>
+            <span style="color:#94a3b8; font-size:0.72rem; margin-left:3px;">[{strat_short}]</span>
+            {side_badge}
+        </div>"""
+        items_html.append(chip)
+
+    sep_html = '<div class="m-sep">|</div>'
+    strip_content = sep_html.join(items_html)
+
+    html = f"""
+    <div class="cmc-compact-header-strip" style="background: rgba(15, 23, 42, 0.78); border-color: rgba(148, 163, 184, 0.18); margin-top: -4px; margin-bottom: 10px;">
+        {strip_content}
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 def render_smart_alerts_banner(active_alerts: List[Dict[str, Any]], runner=None):
     """
