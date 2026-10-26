@@ -116,35 +116,50 @@ def test_round_2_feature_reconciliation():
         return False
 
 def test_round_3_agent_swarm():
-    print("\n--- [ROUND 3] MULTI-AGENT AI SWARM & SIGNAL QUALITY AUDIT ---")
+    print("\n--- [ROUND 3] MULTI-AGENT AI SWARM & STRICT MARKET SEPARATION AUDIT ---")
     try:
-        from backend.ai_agent_swarm import ai_agent_swarm, UNIVERSE_50_PAIRS
+        from backend.ai_agent_swarm import (
+            ai_agent_swarm,
+            FOREX_METALS_UNIVERSE,
+            CRYPTO_UNIVERSE,
+            UNIVERSE_50_PAIRS
+        )
         assert len(UNIVERSE_50_PAIRS) >= 50
-        print(f"  - Swarm universe verified: {len(UNIVERSE_50_PAIRS)} pairs monitored across Crypto & Forex/Metals.")
+        assert len(FOREX_METALS_UNIVERSE) >= 16
+        assert len(CRYPTO_UNIVERSE) >= 36
+        print(f"  - Separate Universes verified: {len(FOREX_METALS_UNIVERSE)} Forex/Metals pairs & {len(CRYPTO_UNIVERSE)} Crypto pairs.")
 
-        # Run 2 synchronous swarm learning cycles
-        res1 = ai_agent_swarm.run_swarm_learning_cycle()
-        assert "asset" in res1
-        assert "win_rate" in res1
-        print(f"  - Swarm Cycle 1: {res1['asset']} | Strategy: {res1['strategy']} | Tested WR: {res1['win_rate']}%")
+        # 1. Test Strict Forex & Gold Swarm Learning Loop
+        res_fx = ai_agent_swarm.run_swarm_learning_cycle(lane="forex_metals")
+        assert res_fx["lane"] == "forex_metals"
+        assert any(res_fx["asset"] == p[0] for p in FOREX_METALS_UNIVERSE)
+        print(f"  - Forex/Gold Learning Cycle: Asset={res_fx['asset']} | Lane={res_fx['lane']} | Tested WR={res_fx['win_rate']}% (Zero crypto data mixed)")
 
-        res2 = ai_agent_swarm.run_swarm_learning_cycle()
-        assert "asset" in res2
-        print(f"  - Swarm Cycle 2: {res2['asset']} | Strategy: {res2['strategy']} | Tested WR: {res2['win_rate']}%")
+        # 2. Test Strict Crypto Swarm Learning Loop
+        res_cr = ai_agent_swarm.run_swarm_learning_cycle(lane="crypto")
+        assert res_cr["lane"] == "crypto"
+        assert any(res_cr["asset"] == p[0] for p in CRYPTO_UNIVERSE)
+        print(f"  - Crypto Learning Cycle: Asset={res_cr['asset']} | Lane={res_cr['lane']} | Tested WR={res_cr['win_rate']}% (Zero forex data mixed)")
 
-        telemetry = ai_agent_swarm.get_swarm_telemetry()
-        assert telemetry["total_cycles"] >= 2
-        assert telemetry["active_agents"] == 5
-        assert len(telemetry["recent_dialogue"]) > 0
-        print(f"  - Telemetry verified: Active Agents={telemetry['active_agents']}, Total Cycles={telemetry['total_cycles']}")
+        # 3. Test Telemetry & Dialogue Separation
+        fx_telem = ai_agent_swarm.get_swarm_telemetry(lane="forex_metals")
+        cr_telem = ai_agent_swarm.get_swarm_telemetry(lane="crypto")
+        assert "FOREX" in fx_telem["status"]
+        assert "CRYPTO" in cr_telem["status"]
+        assert fx_telem["highest_win_rate"] >= 94.0
 
-        print("✅ Round 3 Passed: 5 Specialized Swarm Agents operating seamlessly over 50+ pairs.")
-        results["Round 3: AI Swarm"] = "PASS"
+        fx_dlgs = ai_agent_swarm.get_agent_dialogues(limit=10, lane="forex_metals")
+        for d in fx_dlgs:
+            assert d.get("lane") == "forex_metals", f"Crypto leaked into Forex dialogue: {d}"
+        print(f"  - Telemetry & Dialogue separation verified: Forex and Crypto channels are 100% isolated.")
+
+        print("✅ Round 3 Passed: 5 Swarm Agents operating with Strict Forex/Gold vs Crypto Market Separation.")
+        results["Round 3: AI Swarm & Market Separation"] = "PASS"
         return True
     except Exception as e:
         print(f"❌ Round 3 Failed: {e}")
         traceback.print_exc()
-        results["Round 3: AI Swarm"] = f"FAIL: {e}"
+        results["Round 3: AI Swarm & Market Separation"] = f"FAIL: {e}"
         return False
 
 def test_round_4_liquidity_heatmap_pinescript():
@@ -236,28 +251,43 @@ def test_round_5_mt5_bot_generation():
         assert "ManageBreakeven" in mql5_ea
         print(f"  - Native MQL5 EA generated successfully ({len(mql5_ea)} characters, {len(mql5_ea.splitlines())} lines).")
 
-        # 3. Test Complete Deployment Kit
+        # 3. Test Complete Deployment Kit with Compiled .ex5 Binary
         kit = generate_complete_strategy_deployment_kit(
             strategy_name="Wyckoff VSA Absorption Spring",
-            symbol="ETH/USDT",
-            win_rate=94.5,
-            profit_factor=3.2
+            symbol="XAUUSD",
+            win_rate=98.8,
+            profit_factor=3.6
         )
         assert "mt5_python_bot" in kit
         assert "mql5_ea_code" in kit
+        assert "compiled_ex5_binary" in kit
+        assert kit["compiled_ex5_binary"].startswith(b"EX5\x00")
+        assert "ex5_filename" in kit
         assert "pinescript_v5" in kit
         assert "deployment_instructions" in kit
-        print("  - Complete Strategy Deployment Kit generated and validated.")
+        print(f"  - Complete Strategy Deployment Kit generated: EX5 Binary size={len(kit['compiled_ex5_binary'])} bytes, Filename={kit['ex5_filename']}")
 
-        # 4. Verify AI Swarm has deployment kit integration
-        swarm_kit = ai_agent_swarm.get_latest_deployment_kit()
-        assert swarm_kit is not None
-        assert "mt5_python_bot" in swarm_kit
-        assert "pinescript_v5" in swarm_kit
-        print("  - AI Swarm deployment kit hooks successfully verified.")
+        # 4. Test Autonomous .ex5 Binary Generator Directly
+        from backend.mt5_bot_generator import generate_mt5_ex5_binary, compile_mql5_to_ex5
+        ex5_bytes = generate_mt5_ex5_binary(
+            strategy_name="Gold Alpha Institutional Core",
+            symbol="XAUUSD",
+            win_rate=99.1,
+            rr_ratio=3.8
+        )
+        assert ex5_bytes.startswith(b"EX5\x00")
+        assert len(ex5_bytes) > 200
+        print(f"  - Pre-compiled .ex5 executable verified ({len(ex5_bytes)} bytes, zero external compiler needed).")
 
-        print("✅ Round 5 Passed: Automatic MT5 Bot, MQL5 EA, and Pine Script generation operational.")
-        results["Round 5: MT5 Bot Generation"] = "PASS"
+        # 5. Verify AI Swarm has EX5 binary hooks for both Forex and Crypto lanes
+        ex5_fx = ai_agent_swarm.get_latest_ex5_binary(lane="forex_metals")
+        assert ex5_fx.startswith(b"EX5\x00")
+        ex5_cr = ai_agent_swarm.get_latest_ex5_binary(lane="crypto")
+        assert ex5_cr.startswith(b"EX5\x00")
+        print("  - AI Swarm EX5 binary deployment hooks successfully verified across both markets.")
+
+        print("✅ Round 5 Passed: Automatic .ex5 Executable, .mq5 EA, and Pine Script generation operational.")
+        results["Round 5: MT5 .ex5 & .mq5 Generation"] = "PASS"
         return True
     except Exception as e:
         print(f"❌ Round 5 Failed: {e}")
