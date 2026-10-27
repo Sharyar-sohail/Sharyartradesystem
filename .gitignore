@@ -39,3 +39,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.bak
+
+# Standalone Visual Academy (Independent Git Repository)
+trading_academy/
