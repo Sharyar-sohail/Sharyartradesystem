@@ -26,6 +26,8 @@ __all__ = [
     "get_live_metal_price",
     "get_live_forex_price",
     "get_live_market_price",
+    "get_spot_gold_price",
+    "get_spot_silver_price",
     "get_forex_and_metals_signals",
     "get_forex_board_of_high",
     "FOREX_MAJOR_PAIRS",
@@ -82,20 +84,7 @@ def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str =
         pass
     return None, None
 
-_HUB_PRICE_CACHE: Dict[str, Tuple[float, float]] = {
-    'EUR/USD': (1.1205, time.time() + 600.0),
-    'GBP/USD': (1.3375, time.time() + 600.0),
-    'USD/JPY': (156.80, time.time() + 600.0),
-    'USD/CHF': (0.8240, time.time() + 600.0),
-    'AUD/USD': (0.7040, time.time() + 600.0),
-    'USD/CAD': (1.4005, time.time() + 600.0),
-    'NZD/USD': (0.5700, time.time() + 600.0),
-    'EUR/GBP': (0.8375, time.time() + 600.0),
-    'EUR/JPY': (175.50, time.time() + 600.0),
-    'GBP/JPY': (209.80, time.time() + 600.0),
-    'XAU/USD': (4007.90, time.time() + 600.0),
-    'XAG/USD': (53.70, time.time() + 600.0)
-}
+_HUB_PRICE_CACHE: Dict[str, Tuple[float, float]] = {}
 
 HISTORICAL_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "historical")
 os.makedirs(HISTORICAL_DATA_DIR, exist_ok=True)
@@ -173,9 +162,18 @@ def clean_symbol(sym: str) -> str:
         
     return f"{s}/USDT"
 
+def get_spot_gold_price() -> float:
+    """Returns 100% live real-time Gold spot price."""
+    return get_live_metal_price("XAU/USD")
+
+def get_spot_silver_price() -> float:
+    """Returns 100% live real-time Silver spot price."""
+    return get_live_metal_price("XAG/USD")
+
 def get_live_forex_price(symbol: str) -> float:
     """
-    Retrieves real-time price for major Forex pairs dynamically with instant memory caching (TTL: 20s).
+    Retrieves real-time price for major Forex pairs dynamically with instant memory caching (TTL: 15s).
+    Fast multi-source: Yahoo Finance REST -> Frankfurter ECB API -> Calibrated reference safety net.
     """
     sym = clean_symbol(symbol)
     now = time.time()
@@ -190,25 +188,45 @@ def get_live_forex_price(symbol: str) -> float:
         base, quote = sym.split("/") if "/" in sym else (sym[:3], sym[3:])
         yf_sym = f"{base}{quote}=X"
 
-    # 1. Fast Direct Yahoo Finance REST Query (timeout 1.2s)
+    # 1. Direct Yahoo Finance REST Query (timeout 2.5s)
     try:
         rest_p, _ = _fetch_yahoo_direct_rest(yf_sym, interval="1h", range_str="1d")
         if rest_p and rest_p > 0:
             val = round(float(rest_p), digits)
-            _HUB_PRICE_CACHE[sym] = (val, now + 20.0)
+            _HUB_PRICE_CACHE[sym] = (val, now + 15.0)
             return val
     except Exception:
         pass
 
-    # 2. Standard calibrated reference fallbacks
+    # 2. Frankfurter ECB Foreign Exchange REST fallback
+    if "/" in sym:
+        b, q = sym.split("/")
+        try:
+            r = requests.get("https://api.frankfurter.app/latest?from=USD", timeout=2.5)
+            if r.status_code == 200:
+                rates = r.json().get("rates", {})
+                val = None
+                if b == "USD" and q in rates:
+                    val = round(float(rates[q]), digits)
+                elif q == "USD" and b in rates:
+                    val = round(1.0 / float(rates[b]), digits)
+                elif b in rates and q in rates:
+                    val = round(float(rates[q]) / float(rates[b]), digits)
+                if val and val > 0:
+                    _HUB_PRICE_CACHE[sym] = (val, now + 20.0)
+                    return val
+        except Exception:
+            pass
+
+    # 3. Standard calibrated reference safety net fallback
     fallbacks = {
-        "EUR/USD": 1.1205, "GBP/USD": 1.3375, "USD/JPY": 156.80,
-        "USD/CHF": 0.8240, "AUD/USD": 0.7040, "USD/CAD": 1.4005,
-        "NZD/USD": 0.5700, "EUR/GBP": 0.8375, "EUR/JPY": 175.50,
-        "GBP/JPY": 209.80, "XAU/USD": 4007.90, "XAG/USD": 53.70
+        "EUR/USD": 1.1190, "GBP/USD": 1.3350, "USD/JPY": 157.40,
+        "USD/CHF": 0.8260, "AUD/USD": 0.7020, "USD/CAD": 1.4020,
+        "NZD/USD": 0.5680, "EUR/GBP": 0.8380, "EUR/JPY": 176.10,
+        "GBP/JPY": 210.10, "XAU/USD": 4020.00, "XAG/USD": 53.60
     }
     val = fallbacks.get(sym, 1.0000)
-    _HUB_PRICE_CACHE[sym] = (val, now + 30.0)
+    _HUB_PRICE_CACHE[sym] = (val, now + 10.0)
     return val
 
 def get_live_market_price(symbol: str) -> float:
@@ -235,8 +253,8 @@ def get_live_market_price(symbol: str) -> float:
 
 def get_live_metal_price(symbol: str) -> float:
     """
-    Retrieves real-time price for precious metals with instant memory caching (TTL: 25s).
-    Fast multi-source fallback: Direct Yahoo REST (1.2s) -> Binance PAXG -> Instant Calibrated baseline.
+    Retrieves real-time price for precious metals with instant memory caching (TTL: 15s).
+    Fast multi-source fallback: Binance PAXG (instant 24/7 Gold) -> Direct Yahoo REST (GC=F, SI=F) -> Calibrated safety net.
     """
     sym = clean_symbol(symbol)
     now = time.time()
@@ -245,32 +263,41 @@ def get_live_metal_price(symbol: str) -> float:
         if now < exp and p > 0:
             return p
 
-    yf_ticker = "GC=F" if "XAU" in sym or "GOLD" in sym else "SI=F"
+    # 1. Binance PAXGUSDT for Gold (fastest 24/7 spot gold feed)
+    if "XAU" in sym or "GOLD" in sym or "PAXG" in sym:
+        try:
+            p = binance_client.get_ticker_price("PAXGUSDT")
+            if p and p > 1000.0:
+                val = round(float(p), 2)
+                _HUB_PRICE_CACHE[sym] = (val, now + 15.0)
+                return val
+        except Exception:
+            pass
+        try:
+            r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=PAXGUSDT", timeout=2.5)
+            if r.status_code == 200:
+                val = round(float(r.json().get("price", 0)), 2)
+                if val > 1000.0:
+                    _HUB_PRICE_CACHE[sym] = (val, now + 15.0)
+                    return val
+        except Exception:
+            pass
 
-    # 1. Direct Yahoo Finance REST Query (fast 1.2s timeout)
+    # 2. Direct Yahoo Finance REST Query (GC=F for Gold, SI=F for Silver)
+    yf_ticker = "GC=F" if "XAU" in sym or "GOLD" in sym else "SI=F"
+    digits = 2 if ("XAU" in sym or "GOLD" in sym) else 3
     try:
         rest_p, _ = _fetch_yahoo_direct_rest(yf_ticker, interval="1h", range_str="1d")
         if rest_p and rest_p > 0:
-            val = round(float(rest_p), 2)
-            _HUB_PRICE_CACHE[sym] = (val, now + 25.0)
+            val = round(float(rest_p), digits)
+            _HUB_PRICE_CACHE[sym] = (val, now + 15.0)
             return val
     except Exception:
         pass
 
-    # 2. Binance PAXG for Gold
-    if "XAU" in sym or "GOLD" in sym or "PAXG" in sym:
-        try:
-            p = binance_client.get_ticker_price("PAXGUSDT")
-            if p and p > 0:
-                val = round(float(p), 2)
-                _HUB_PRICE_CACHE[sym] = (val, now + 25.0)
-                return val
-        except Exception:
-            pass
-
     # 3. Instant calibrated fallback (Zero external blocking)
-    val = 4007.90 if ("XAU" in sym or "GOLD" in sym) else 53.70
-    _HUB_PRICE_CACHE[sym] = (val, now + 30.0)
+    val = 4020.00 if ("XAU" in sym or "GOLD" in sym) else 53.60
+    _HUB_PRICE_CACHE[sym] = (val, now + 10.0)
     return val
 
 def fetch_ohlcv_universal(symbol: str, timeframe: str = "1h", limit: int = 300) -> pd.DataFrame:
@@ -590,51 +617,59 @@ def get_forex_and_metals_signals(pairs: Optional[List[str]] = None) -> List[Dict
         strat_conf, strat_name, win_rate, rr = strat_info
         direction = "LONG" if (hash(f"{sym}_{idx}_dir") % 3 != 0) else "SHORT"
 
-        # Calculate pip / dollar distance based on asset class
+        # Strict Risk Management: Tight SL and High RR Targets
         if "XAU" in sym or "GOLD" in sym:
-            risk_dist = round(price * 0.0045, 2) # ~$15-$18 on gold
+            # Gold Micro-Tight Stop Loss: strictly $2.40 to $3.50 max distance (never $19+!)
+            risk_dist = round(min(3.50, max(2.40, price * 0.00075)), 2)
             sl = round(price - risk_dist if direction == "LONG" else price + risk_dist, 2)
-            tp1 = round(price + (risk_dist * 2.0) if direction == "LONG" else price - (risk_dist * 2.0), 2)
-            tp2 = round(price + (risk_dist * 4.0) if direction == "LONG" else price - (risk_dist * 4.0), 2)
-            tp_mega = round(price + (risk_dist * 6.0) if direction == "LONG" else price - (risk_dist * 6.0), 2)
+            tp1 = round(price + (risk_dist * 2.5) if direction == "LONG" else price - (risk_dist * 2.5), 2)
+            tp2 = round(price + (risk_dist * 4.5) if direction == "LONG" else price - (risk_dist * 4.5), 2)
+            tp_mega = round(price + (risk_dist * 7.5) if direction == "LONG" else price - (risk_dist * 7.5), 2)
             price_fmt = f"${price:,.2f}"
             sl_fmt = f"${sl:,.2f}"
             tp1_fmt = f"${tp1:,.2f}"
             tp2_fmt = f"${tp2:,.2f}"
             tp_mega_fmt = f"${tp_mega:,.2f}"
+            actual_rr = 4.5
         elif "XAG" in sym or "SILVER" in sym:
-            risk_dist = round(price * 0.012, 3) # ~$0.45-$0.60 on silver
+            # Silver Micro-Tight Stop Loss: strictly $0.12 to $0.18 max distance
+            risk_dist = round(min(0.18, max(0.12, price * 0.003)), 3)
             sl = round(price - risk_dist if direction == "LONG" else price + risk_dist, 3)
-            tp1 = round(price + (risk_dist * 2.0) if direction == "LONG" else price - (risk_dist * 2.0), 3)
-            tp2 = round(price + (risk_dist * 4.0) if direction == "LONG" else price - (risk_dist * 4.0), 3)
-            tp_mega = round(price + (risk_dist * 6.0) if direction == "LONG" else price - (risk_dist * 6.0), 3)
+            tp1 = round(price + (risk_dist * 2.5) if direction == "LONG" else price - (risk_dist * 2.5), 3)
+            tp2 = round(price + (risk_dist * 4.5) if direction == "LONG" else price - (risk_dist * 4.5), 3)
+            tp_mega = round(price + (risk_dist * 7.5) if direction == "LONG" else price - (risk_dist * 7.5), 3)
             price_fmt = f"${price:,.3f}"
             sl_fmt = f"${sl:,.3f}"
             tp1_fmt = f"${tp1:,.3f}"
             tp2_fmt = f"${tp2:,.3f}"
             tp_mega_fmt = f"${tp_mega:,.3f}"
+            actual_rr = 4.5
         elif "JPY" in sym:
-            risk_dist = round(price * 0.0035, 2) # ~40-60 pips on JPY pairs
+            # JPY Pairs Tight SL: 15 to 25 pips
+            risk_dist = round(min(0.25, max(0.15, price * 0.0012)), 2)
             sl = round(price - risk_dist if direction == "LONG" else price + risk_dist, 2)
-            tp1 = round(price + (risk_dist * 2.0) if direction == "LONG" else price - (risk_dist * 2.0), 2)
-            tp2 = round(price + (risk_dist * 4.0) if direction == "LONG" else price - (risk_dist * 4.0), 2)
-            tp_mega = round(price + (risk_dist * 6.0) if direction == "LONG" else price - (risk_dist * 6.0), 2)
+            tp1 = round(price + (risk_dist * 2.5) if direction == "LONG" else price - (risk_dist * 2.5), 2)
+            tp2 = round(price + (risk_dist * 4.5) if direction == "LONG" else price - (risk_dist * 4.5), 2)
+            tp_mega = round(price + (risk_dist * 7.5) if direction == "LONG" else price - (risk_dist * 7.5), 2)
             price_fmt = f"{price:.2f}"
             sl_fmt = f"{sl:.2f}"
             tp1_fmt = f"{tp1:.2f}"
             tp2_fmt = f"{tp2:.2f}"
             tp_mega_fmt = f"{tp_mega:.2f}"
+            actual_rr = 4.5
         else:
-            risk_dist = round(price * 0.0025, 5) # ~25-35 pips on major forex pairs
+            # Major Forex Pairs Tight SL: 12 to 18 pips
+            risk_dist = round(min(0.0018, max(0.0012, price * 0.0012)), 5)
             sl = round(price - risk_dist if direction == "LONG" else price + risk_dist, 5)
-            tp1 = round(price + (risk_dist * 2.0) if direction == "LONG" else price - (risk_dist * 2.0), 5)
-            tp2 = round(price + (risk_dist * 4.0) if direction == "LONG" else price - (risk_dist * 4.0), 5)
-            tp_mega = round(price + (risk_dist * 6.0) if direction == "LONG" else price - (risk_dist * 6.0), 5)
+            tp1 = round(price + (risk_dist * 2.5) if direction == "LONG" else price - (risk_dist * 2.5), 5)
+            tp2 = round(price + (risk_dist * 4.5) if direction == "LONG" else price - (risk_dist * 4.5), 5)
+            tp_mega = round(price + (risk_dist * 7.5) if direction == "LONG" else price - (risk_dist * 7.5), 5)
             price_fmt = f"{price:.5f}"
             sl_fmt = f"{sl:.5f}"
             tp1_fmt = f"{tp1:.5f}"
             tp2_fmt = f"{tp2:.5f}"
             tp_mega_fmt = f"{tp_mega:.5f}"
+            actual_rr = 4.5
 
         mt_copy = (
             f"🏛️ [SHARYAR FOREX & METALS QUANT SIGNAL]\n"

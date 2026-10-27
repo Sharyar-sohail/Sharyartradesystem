@@ -688,6 +688,59 @@ def render_ai_strategy_and_swarm_lab(default_arena: str = "crypto"):
 
     st.divider()
 
+    # -------------------------------------------------------------
+    # 1. HUMAN-READABLE AI OPERATIONAL RULES & VISUAL CHART BLUEPRINT
+    # -------------------------------------------------------------
+    st.markdown(f"#### 📖 **Human-Readable AI Strategy Rules & Chart Blueprint ({'🏛️ Gold & Forex' if default_arena=='forex' else '🪙 Crypto'})**")
+    st.caption("Step-by-step operational rule breakdown explaining core institutional philosophy, execution trigger checklist, key SMC indicators to observe, and chart blueprint diagrams.")
+
+    readable_rules = ai_agent_swarm.get_human_readable_rules(lane=target_lane)
+    with st.container(border=True):
+        st.markdown(f"##### 🎯 **Strategy: `{readable_rules['strategy_name']}` on `{readable_rules['asset']}`**")
+        st.caption(f"Verified Accuracy: **{readable_rules['conviction_win_rate']}** • Risk-to-Reward: **{readable_rules['risk_reward_ratio']}** • Execution Mode: **SMC Institutional Order Flow**")
+        
+        st.markdown("###### 🏛️ **1. Institutional Market Philosophy**")
+        st.info(readable_rules["philosophy"])
+
+        c_chk, c_ind = st.columns([1.2, 1.0])
+        with c_chk:
+            st.markdown("###### 📝 **2. 4-Step Trade Execution Trigger Checklist**")
+            for item in readable_rules["trigger_checklist"]:
+                st.markdown(f"- {item}")
+        with c_ind:
+            st.markdown("###### 🔍 **3. SMC Structure & Indicators to Look For**")
+            ind_df = pd.DataFrame(readable_rules["indicators_and_patterns"])
+            st.dataframe(ind_df, width="stretch", hide_index=True)
+
+        st.markdown("###### 📊 **4. Institutional Chart Blueprint & Level Breakdown**")
+        st.markdown(readable_rules["chart_diagram_markdown"])
+
+    st.divider()
+
+    # -------------------------------------------------------------
+    # 2. MULTI-AGENT SL FAILURE DIAGNOSIS & SELF-CORRECTION LOG
+    # -------------------------------------------------------------
+    st.markdown(f"#### 🩺 **Multi-Agent SL Failure Diagnostics & Self-Correction Log ({'🏛️ Forex & Gold' if default_arena=='forex' else '🪙 Crypto'})**")
+    st.caption("Continuous learning agents perform root-cause analysis on past Stop Loss hits (e.g. premature breakout wicks on HNT/USDT and London Judas sweeps on Gold), synthesize corrective parameter mutations, and systematically boost accuracy.")
+
+    failure_records = ai_agent_swarm.get_failure_diagnoses(limit=10, lane=target_lane)
+    if failure_records:
+        for idx, rec in enumerate(failure_records, start=1):
+            with st.expander(f"⚠️ Case #{idx}: {rec.get('asset')} — {rec.get('failure_symptom')} [{rec.get('status', 'ACTIVE')}]", expanded=(idx <= 2)):
+                col_d1, col_d2 = st.columns([1.2, 1.0])
+                with col_d1:
+                    st.markdown(f"**Root Cause Analysis:** {rec.get('root_cause')}")
+                    st.markdown("**Applied Parameter Mutations:**")
+                    st.code(rec.get('corrective_mutation'), language="text")
+                with col_d2:
+                    st.markdown(f"**Trade Type:** `{rec.get('trade_type', 'Market Execution')}`")
+                    st.markdown(f"**Timestamp:** `{rec.get('timestamp', '-')}`")
+                    st.success(f"📈 **Accuracy Boost:** {rec.get('accuracy_impact')}")
+    else:
+        st.info("No active failure diagnoses recorded.")
+
+    st.divider()
+
     # AUTOMATED MT5 BOT & TRADINGVIEW PINE SCRIPT V5 SUITE (90%-99%+ WIN-RATE COMPILATION)
     st.markdown("#### 🤖 **Automated MetaTrader 5 (MT5) Bot & TradingView Pine Script v5 Suite**")
     st.caption("When the Multi-Agent AI Swarm validates institutional algorithmic strategies reaching 90% to 99%+ accuracy, executable Python demo bot code, native MQL5 Expert Advisors, and TradingView Pine Script v5 indicators are compiled automatically for rapid demo deployment and strategy verification.")
