@@ -242,8 +242,13 @@ if "trading_lane" not in st.session_state:
     st.session_state.trading_lane = None
 
 # ---------------------------------------------------------------------
-# 1. SECRET KEY AUTHENTICATION GATE
+# 1. ACADEMY ROUTING & SECURE DUAL STARTUP GATEWAY
 # ---------------------------------------------------------------------
+if st.session_state.get("in_academy_mode", False):
+    from academy.ui import render_academy_main_interface
+    render_academy_main_interface()
+    st.stop()
+
 if not st.session_state.get("authenticated", False):
     render_secret_key_login_gate()
     st.stop()
@@ -1580,6 +1585,10 @@ if trading_lane == "crypto":
     # -----------------------------------------------------------------
     # TAB: SYSTEM LOGS & TERMINAL
     # -----------------------------------------------------------------
+    elif app_mode == "🎓 Masterclass Academy" or "Academy" in str(app_mode) or "Masterclass" in str(app_mode):
+        from academy.ui import render_academy_main_interface
+        render_academy_main_interface()
+
     elif app_mode == "⚙️ System Logs" or "Logs" in str(app_mode) or "Terminal" in str(app_mode):
         st.markdown("### 🖥️ **Live System Telemetry & Terminal Console**")
         st.caption("Real-time event stream, data feeds, and execution logs.")
@@ -2151,6 +2160,10 @@ elif trading_lane in ["forex_metals", "metals"]:
     # -----------------------------------------------------------------
     # TAB: SYSTEM LOGS
     # -----------------------------------------------------------------
+    elif app_mode == "🎓 Masterclass Academy" or "Academy" in str(app_mode) or "Masterclass" in str(app_mode):
+        from academy.ui import render_academy_main_interface
+        render_academy_main_interface()
+
     elif app_mode == "⚙️ System Logs" or "Logs" in str(app_mode) or "Terminal" in str(app_mode):
         st.markdown("### 🖥️ **Live System Telemetry & Terminal Console**")
         render_terminal_logs(get_logs(limit=250))

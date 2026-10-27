@@ -613,46 +613,74 @@ def get_apk_binary_data() -> Optional[bytes]:
                 pass
     return None
 
-def render_secret_key_login_gate() -> bool:
+def render_dual_startup_gateway() -> bool:
     """
-    Renders an institutional Secret Key authentication gate.
-    Restricts access to the Sharyar Trading System until valid authentication is completed.
-    Default key: 'SHARYAR'.
+    Renders an institutional, dual-option Startup Gateway:
+    - Option A: Professional Trading Terminal (Secure Password Protected, key: 'SHARYAR')
+    - Option B: Public Trading Academy & Masterclass (100% Free, Frictionless, Zero Password Required)
     """
     from backend.db import get_system_setting
 
     st.markdown(
-        "<div style='display:flex; justify-content:center; align-items:center; margin-top:6vh; margin-bottom:20px;'>"
-        "<div style='background:rgba(18,24,38,0.92); border:1px solid rgba(0,229,255,0.3); border-radius:24px; padding:32px 36px; width:100%; max-width:480px; box-shadow:0 15px 45px rgba(0,0,0,0.8), 0 0 25px rgba(0,229,255,0.15); text-align:center;'>"
-        "<div style='font-size:2.4rem; margin-bottom:8px;'>⚡</div>"
-        "<div style='font-size:1.55rem; font-weight:900; letter-spacing:0.04em; color:#FFFFFF; margin-bottom:4px;'>SHARYAR TRADING SYSTEM</div>"
-        "<div style='font-size:0.75rem; color:#00E5FF; font-weight:700; letter-spacing:0.06em; margin-bottom:16px;'>INSTITUTIONAL QUANTITATIVE TERMINAL & AI CONSENSUS CORE</div>"
-        "<div style='height:1px; background:linear-gradient(90deg, transparent, rgba(0,229,255,0.3), transparent); margin-bottom:18px;'></div>"
-        "<div style='font-size:0.85rem; color:#cbd5e1;'>🔒 Enter Secret Key to authenticate & unlock live terminal feeds</div>"
-        "</div>"
-        "</div>",
+        """
+        <div style='display:flex; justify-content:center; align-items:center; margin-top:2vh; margin-bottom:20px;'>
+            <div style='background:rgba(10,14,23,0.96); border:1px solid rgba(0,229,255,0.35); border-radius:28px; padding:24px 32px; width:100%; max-width:920px; box-shadow:0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(0,229,255,0.18); text-align:center;'>
+                <div style='font-size:2.2rem; margin-bottom:4px;'>⚡ 🎓</div>
+                <div style='font-size:1.8rem; font-weight:900; letter-spacing:0.04em; color:#FFFFFF; margin-bottom:2px;'>SHARYAR TRADING SYSTEM</div>
+                <div style='font-size:0.80rem; color:#00E5FF; font-weight:700; letter-spacing:0.08em; margin-bottom:10px;'>
+                    INSTITUTIONAL QUANTITATIVE TERMINAL & ULTIMATE TRADING MASTERCLASS
+                </div>
+                <div style='height:1px; background:linear-gradient(90deg, transparent, rgba(0,229,255,0.4), transparent); margin-bottom:12px;'></div>
+                <div style='font-size:0.86rem; color:#94a3b8;'>
+                    Select your operational mode below: Authenticate to enter live automated trading engines, or access the comprehensive trading masterclass freely without credentials.
+                </div>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
-    _, col_gate, _ = st.columns([1.0, 1.4, 1.0])
-    with col_gate:
+    col_term, col_acad = st.columns([1.0, 1.0], gap="medium")
+
+    # OPTION A: PROFESSIONAL TRADING TERMINAL
+    with col_term:
         with st.container(border=True):
+            st.markdown(
+                """
+                <div style='text-align:center; margin-bottom:10px;'>
+                    <span style='font-size:2rem;'>🏛️</span>
+                    <h3 style='margin:4px 0; color:#FFFFFF; font-size:1.25rem;'>Professional Terminal</h3>
+                    <span style='background:rgba(255,23,68,0.18); border:1px solid #FF1744; color:#FF5252; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:12px;'>
+                        🔒 PASSWORD PROTECTED
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                """
+                - 🪙 **Live Binance Crypto Engine & 500% Scanner**
+                - 🏛️ **Live Spot Gold (XAU/USD) & Forex Engine**
+                - ⚡ **Multi-Agent AI Swarm (96%-99% Win Rate)**
+                - 🎯 **Micro-Tight SL (<$3.50 Gold) & 1:4.5+ RR**
+                - 🤖 **Auto-Generated MT5 (.ex5/.mq5) & Pine Bots**
+                """
+            )
+            st.write("---")
             entered_key = st.text_input(
-                "Secret Access Key",
+                "Terminal Secret Key",
                 value="",
                 type="password",
-                placeholder="Enter Secret Key",
+                placeholder="Enter Secret Key (Default: SHARYAR)",
                 autocomplete="new-password",
-                key="input_login_secret_key"
+                key="input_dual_gateway_key"
             )
-            
-            login_btn = st.button("⚡ Unlock Terminal", type="primary", width="stretch", key="btn_unlock_terminal")
-
-            if login_btn:
+            if st.button("⚡ Unlock Trading Terminal", type="primary", width="stretch", key="btn_unlock_terminal_gateway"):
                 current_key = get_system_setting("secret_key", "SHARYAR")
                 cleaned_entry = entered_key.strip()
                 if cleaned_entry.upper() == current_key.upper() or cleaned_entry.upper() == "SHARYAR" or cleaned_entry == "شریار":
                     st.session_state.authenticated = True
+                    st.session_state.in_academy_mode = False
                     st.session_state.is_master_admin = (cleaned_entry.upper() == "SHARYAR" or cleaned_entry == "شریار")
                     st.session_state.show_welcome_modal = True
                     st.session_state.welcome_modal_dismissed = False
@@ -660,9 +688,42 @@ def render_secret_key_login_gate() -> bool:
                     st.rerun()
                 else:
                     st.error("❌ Invalid Secret Key. Access Denied.")
-                    return False
+
+    # OPTION B: PUBLIC TRADING ACADEMY & MASTERCLASS
+    with col_acad:
+        with st.container(border=True):
+            st.markdown(
+                """
+                <div style='text-align:center; margin-bottom:10px;'>
+                    <span style='font-size:2rem;'>🎓</span>
+                    <h3 style='margin:4px 0; color:#FFFFFF; font-size:1.25rem;'>Trading Masterclass</h3>
+                    <span style='background:rgba(0,230,118,0.18); border:1px solid #00E676; color:#00E676; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:12px;'>
+                        ✨ 100% FREE • ZERO PASSWORD REQUIRED
+                    </span>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                """
+                - 📚 **7 Complete Modules (Candlesticks to Quant)**
+                - 🎮 **Virtual Simulator with $10,000 Demo Balance**
+                - 🎯 **Interactive Quizzes & Official Certified Badges**
+                - 🤖 **AI-Synced Daily Strategy Feed (Human-Readable)**
+                - 🧮 **Interactive Position Sizing & Compounding Tools**
+                """
+            )
+            st.write("---")
+            st.caption("Frictionless public education for anyone wanting to master institutional price action, Smart Money Concepts (SMC), and strict risk management.")
+            if st.button("🎓 Enter Free Masterclass (Instant)", type="secondary", width="stretch", key="btn_enter_academy_gateway"):
+                st.session_state.in_academy_mode = True
+                st.rerun()
 
     return False
+
+def render_secret_key_login_gate() -> bool:
+    """Backward-compatible proxy to dual startup gateway."""
+    return render_dual_startup_gateway()
 
 def render_role_selection_welcome_screen():
     """
@@ -925,6 +986,7 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
             "🪙 Forex & Metals Signals",
             "🏛️ Board of High",
             "📊 Live Trades & Statistics",
+            "🎓 Masterclass Academy",
             "🛡️ Trade Risk & Side-Evaluation",
             "🌊 Liquidity Heatmap",
             "📜 Pine Script v5",
@@ -938,6 +1000,7 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
         tabs = [
             "📡 Live Signals & Tracking",
             "📊 Live Trades & Statistics",
+            "🎓 Masterclass Academy",
             "🛡️ Trade Risk & Side-Evaluation",
             "🌊 Liquidity Heatmap",
             "📜 Pine Script v5",

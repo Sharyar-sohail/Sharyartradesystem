@@ -49,6 +49,12 @@ def test_round_1_import_integrity():
         import strategies.volatility_contraction
         import strategies.wyckoff_vsa
         import ui.components
+        import academy
+        import academy.curriculum
+        import academy.simulator
+        import academy.quizzes
+        import academy.ai_strategy_feed
+        import academy.ui
         print("✅ Round 1 Passed: All 22+ modules and submodules imported cleanly with zero errors.")
         results["Round 1: Package Imports"] = "PASS"
         return True
@@ -243,7 +249,41 @@ def test_round_5_error_learning_human_rules():
         assert "chart_diagram_markdown" in cr_rules
         print(f"  - Crypto Human-Readable Operational Rules verified: 4-Step Checklist + Visual Chart Blueprint.")
 
-        print("✅ Round 5 Passed: Iterative error learning diagnostics and human-readable operational rules verified.")
+        # 3. Test Sharyar Trading Academy & Masterclass Integration
+        import academy
+        from academy.simulator import init_simulator_state, open_virtual_trade, close_virtual_trade, get_positions_with_floating_pnl
+        modules = academy.get_all_modules()
+        assert len(modules) == 7, f"Expected 7 curriculum modules, got {len(modules)}"
+        print(f"  - Academy Curriculum verified: {len(modules)} comprehensive modules (Candlestick to Quant).")
+
+        quizzes = academy.get_all_quizzes()
+        assert len(quizzes) >= 4, f"Expected >=4 quiz topics, got {len(quizzes)}"
+        badges = academy.calculate_student_badges({"quiz_foundations": 85.0, "quiz_smc": 90.0, "quiz_risk": 100.0, "quiz_psychology": 90.0})
+        assert len(badges) >= 4
+        print(f"  - Academy Quizzes & Certification verified: {len(quizzes)} exams with {len(badges)} milestone badges.")
+
+        # Test Virtual Paper Trading Simulator ($10,000 wallet)
+        class DummySession:
+            pass
+        dummy_state = DummySession()
+        init_simulator_state(dummy_state)
+        assert dummy_state.academy_wallet_balance == 10000.00
+        trade = open_virtual_trade(dummy_state, "XAU/USD", "BUY", 0.50, 4016.50, 4031.50)
+        assert len(dummy_state.academy_open_positions) == 1
+        enriched = get_positions_with_floating_pnl(dummy_state)
+        assert "floating_pnl_usd" in enriched[0]
+        closed = close_virtual_trade(dummy_state, trade["id"])
+        assert closed is not None
+        assert len(dummy_state.academy_trade_history) == 1
+        print(f"  - Virtual Paper Trading Simulator ($10,000 Demo) verified: Trade executed & settled cleanly.")
+
+        # Test AI-Synced Strategy Feed
+        feed_strats = academy.get_synced_ai_academy_strategies(limit=5)
+        assert len(feed_strats) > 0
+        assert "market_label" in feed_strats[0]
+        print(f"  - AI-Synced Academy Strategy Feed verified: {len(feed_strats)} active empirical strategies.")
+
+        print("✅ Round 5 Passed: Iterative error learning, human-readable rules & Academy integration verified.")
         results["Round 5: Error Learning & Human Rules"] = "PASS"
         return True
     except Exception as e:
@@ -335,7 +375,13 @@ def test_round_7_full_compilation():
             "backend/pinescript_generator.py",
             "backend/runner.py",
             "backend/db.py",
-            "ui/components.py"
+            "ui/components.py",
+            "academy/__init__.py",
+            "academy/curriculum.py",
+            "academy/quizzes.py",
+            "academy/simulator.py",
+            "academy/ai_strategy_feed.py",
+            "academy/ui.py"
         ]
         for f in files_to_test:
             fpath = os.path.join(ROOT_DIR, f)
