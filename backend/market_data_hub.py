@@ -21,6 +21,19 @@ except Exception:
 
 from backend.db import log_event
 from backend.binance_client import binance_client
+from backend.psx_engine import (
+    get_live_psx_price,
+    fetch_psx_ohlcv,
+    get_psx_company_quote,
+    get_psx_indices,
+    get_psx_signals,
+    get_psx_board_of_high,
+    get_psx_circuit_breaker_scanner,
+    evaluate_psx_trade_side,
+    ALL_PSX_SYMBOLS,
+    MAJOR_PSX_SYMBOLS,
+    PSX_INDICES
+)
 
 __all__ = [
     "get_live_metal_price",
@@ -34,7 +47,18 @@ __all__ = [
     "fetch_ohlcv_universal",
     "fetch_inception_history",
     "clean_symbol",
-    "YFINANCE_MAP"
+    "YFINANCE_MAP",
+    "get_live_psx_price",
+    "fetch_psx_ohlcv",
+    "get_psx_company_quote",
+    "get_psx_indices",
+    "get_psx_signals",
+    "get_psx_board_of_high",
+    "get_psx_circuit_breaker_scanner",
+    "evaluate_psx_trade_side",
+    "ALL_PSX_SYMBOLS",
+    "MAJOR_PSX_SYMBOLS",
+    "PSX_INDICES"
 ]
 
 def _fetch_yahoo_direct_rest(yf_sym: str, interval: str = "1h", range_str: str = "5d") -> Tuple[Optional[float], Optional[pd.DataFrame]]:
@@ -156,6 +180,11 @@ def clean_symbol(sym: str) -> str:
         if s.endswith(q) and len(s) > len(q):
             return f"{s[:-len(q)]}/{q}"
             
+    # Pakistan Stock Exchange (PSX) Symbols & Indices
+    s_psx = s.replace("PSX:", "").replace(".KA", "").strip()
+    if s_psx in ALL_PSX_SYMBOLS or any(idx[0] == s_psx for idx in PSX_INDICES) or "/PKR" in s or s.endswith(".KA"):
+        return s_psx
+
     # Major equity symbols
     if s in ["AAPL", "NVDA", "TSLA", "MSFT", "AMZN", "META", "GOOGL", "SPY", "QQQ"]:
         return f"{s}/USD"
@@ -234,9 +263,13 @@ def get_live_market_price(symbol: str) -> float:
     Universal real-time price getter for ANY asset:
     - Precious Metals (XAU/USD, XAG/USD)
     - Major Forex Pairs (EUR/USD, GBP/USD, USD/JPY, etc.)
+    - Pakistan Stock Exchange (PSX Stocks & Indices)
     - Crypto Pairs (BTC/USDT, ETH/USDT, etc.)
     """
     sym = clean_symbol(symbol)
+    # PSX Route
+    if sym in ALL_PSX_SYMBOLS or any(idx[0] == sym for idx in PSX_INDICES) or sym.endswith(".KA") or "PSX" in sym or "/PKR" in str(symbol):
+        return get_live_psx_price(sym)
     if any(m in sym for m in ["XAU", "XAG", "GOLD", "SILVER"]):
         return get_live_metal_price(sym)
     if any(fx in sym for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"]) and "USDT" not in sym:
@@ -304,13 +337,16 @@ def fetch_ohlcv_universal(symbol: str, timeframe: str = "1h", limit: int = 300) 
     """
     Universal OHLCV candle fetcher for ANY asset pair from global markets.
     Dynamically routes across:
-    1. Yahoo Finance (Commodities, Gold/Silver, FX, Traditional Equities)
-    2. Binance Direct CCXT / REST
-    3. Multi-Exchange Public Aggregator (Bybit, Bitget, Gate.io)
-    4. Yahoo Finance Crypto Fallback
+    1. Pakistan Stock Exchange (PSX equities & indices)
+    2. Yahoo Finance (Commodities, Gold/Silver, FX, Traditional Equities)
+    3. Binance Direct CCXT / REST
+    4. Multi-Exchange Public Aggregator (Bybit, Bitget, Gate.io)
     5. High-fidelity realistic market structure fallback
     """
     sym = clean_symbol(symbol)
+    # PSX Route
+    if sym in ALL_PSX_SYMBOLS or any(idx[0] == sym for idx in PSX_INDICES) or sym.endswith(".KA") or "PSX" in sym or "/PKR" in str(symbol):
+        return fetch_psx_ohlcv(sym, timeframe, limit)
     
     # 1. Precious Metals & Traditional Commodities / Forex Route
     is_fx_metal = (

@@ -746,25 +746,25 @@ def render_role_selection_welcome_screen():
         unsafe_allow_html=True
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         with st.container(border=True):
             st.markdown(
                 "<div style='text-align:center; padding:10px 0;'>"
                 "<div style='font-size:2.2rem; margin-bottom:6px;'>🚀</div>"
-                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Crypto Trader Lane</div>"
-                "<div style='font-size:0.75rem; color:#00E5FF; font-weight:700; margin-bottom:12px;'>BINANCE SPOT/FUTURES • BITCOIN KING • ALTCOIN MEGA-MOVES</div>"
+                "<div style='font-size:1.25rem; font-weight:800; color:#FFFFFF;'>Crypto Trader Lane</div>"
+                "<div style='font-size:0.72rem; color:#00E5FF; font-weight:700; margin-bottom:12px;'>BINANCE SPOT/FUTURES • BITCOIN KING</div>"
                 "</div>",
                 unsafe_allow_html=True
             )
             st.markdown(
-                "• **Binance Real-Time Integration:** Dynamic pairs stream with Bitcoin prioritized as market leader.\n"
-                "• **Accurate Live Tracking Signals:** Instant Entry, Take Profit (TP), Stop Loss (SL), and AI confidence.\n"
-                "• **Automated Demo Trading Daemon:** Virtual balance execution with live TP/SL hit counters.\n"
-                "• **AI Root Cause Self-Correction:** Logs why SL/TP were hit and iterates ML models 24/7."
+                "• **Binance Real-Time Integration:** Dynamic pairs stream with Bitcoin leader.\n"
+                "• **Live Tracking Signals:** Instant Entry, Take Profit, Stop Loss, and AI confidence.\n"
+                "• **Automated Demo Trading:** Virtual balance execution with live TP/SL hits.\n"
+                "• **AI Swarm Self-Correction:** Logs root-cause analytics and iterates ML models 24/7."
             )
             st.write("")
-            if st.button("🚀 Launch Crypto Trader Lane", type="primary", width="stretch", key="btn_welcome_select_crypto"):
+            if st.button("🚀 Launch Crypto Lane", type="primary", width="stretch", key="btn_welcome_select_crypto"):
                 st.session_state.trading_lane = "crypto"
                 st.session_state.selected_symbol = "BTC/USDT"
                 st.session_state.show_welcome_modal = False
@@ -776,21 +776,45 @@ def render_role_selection_welcome_screen():
             st.markdown(
                 "<div style='text-align:center; padding:10px 0;'>"
                 "<div style='font-size:2.2rem; margin-bottom:6px;'>🪙</div>"
-                "<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF;'>Forex & Metals Trader Lane</div>"
-                "<div style='font-size:0.75rem; color:#FFD700; font-weight:700; margin-bottom:12px;'>GOLD (XAU/USD) LEADER • SILVER • ALL MAJOR FOREX PAIRS</div>"
+                "<div style='font-size:1.25rem; font-weight:800; color:#FFFFFF;'>Forex & Metals Lane</div>"
+                "<div style='font-size:0.72rem; color:#FFD700; font-weight:700; margin-bottom:12px;'>GOLD (XAU/USD) LEADER • SILVER • FOREX</div>"
                 "</div>",
                 unsafe_allow_html=True
             )
             st.markdown(
-                "• **Free API Integration for All Pairs:** Live feeds for Gold, Silver, EUR/USD, GBP/USD, USD/JPY, etc.\n"
-                "• **SMC & ICT Killzone Strategies:** Institutional Order Blocks, Fair Value Gaps, London/NY sweeps.\n"
-                "• **1-Click MetaTrader Copy Box:** Clean, professional copy-paste format for MT4/MT5/Telegram.\n"
-                "• **Walk-Forward SL Minimizer:** Automated empirical backtesting to eliminate session whipsaws."
+                "• **Free API Integration:** Live feeds for Gold, Silver, EUR/USD, GBP/USD, etc.\n"
+                "• **SMC & ICT Killzones:** Institutional Order Blocks, Fair Value Gaps, sweeps.\n"
+                "• **MetaTrader Copy Box:** Clean copy-paste format for MT4/MT5 demo bots.\n"
+                "• **Micro-Tight SL:** Empirical backtesting with tight risk budgets (<$3.50 SL)."
             )
             st.write("")
-            if st.button("🪙 Launch Forex & Metals Lane", type="primary", width="stretch", key="btn_welcome_select_metals"):
+            if st.button("🪙 Launch Forex & Metals", type="primary", width="stretch", key="btn_welcome_select_metals"):
                 st.session_state.trading_lane = "forex_metals"
                 st.session_state.selected_symbol = "XAU/USD"
+                st.session_state.show_welcome_modal = False
+                st.session_state.welcome_modal_dismissed = True
+                st.rerun()
+
+    with col3:
+        with st.container(border=True):
+            st.markdown(
+                "<div style='text-align:center; padding:10px 0;'>"
+                "<div style='font-size:2.2rem; margin-bottom:6px;'>🇵🇰</div>"
+                "<div style='font-size:1.25rem; font-weight:800; color:#FFFFFF;'>PSX Equities Lane</div>"
+                "<div style='font-size:0.72rem; color:#00E676; font-weight:700; margin-bottom:12px;'>KSE-100 BENCHMARK • ALL LISTED EQUITIES</div>"
+                "</div>",
+                unsafe_allow_html=True
+            )
+            st.markdown(
+                "• **Official PSX APIs:** Live KSE-100 index, sectors & real-time quotes (PKR).\n"
+                "• **Circuit Breakers (±7.5%):** Automated detection of upper and lower locks.\n"
+                "• **SMC Order Blocks & FVGs:** Institutional accumulation & breakout setups.\n"
+                "• **All PSX Stocks & Sectors:** Full parity scanners, charts, indicators & demo."
+            )
+            st.write("")
+            if st.button("🇵🇰 Launch PSX Equities", type="primary", width="stretch", key="btn_welcome_select_psx"):
+                st.session_state.trading_lane = "psx"
+                st.session_state.selected_symbol = "OGDC"
                 st.session_state.show_welcome_modal = False
                 st.session_state.welcome_modal_dismissed = True
                 st.rerun()
@@ -819,7 +843,13 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
 
     cur_lane = st.session_state.get("trading_lane", "crypto")
     is_fx = cur_lane in ["metals", "forex_metals"]
-    lane_badge = '<span style="background:rgba(255,215,0,0.18); border:1px solid #ffd700; color:#ffd700; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🪙 FOREX & METALS</span>' if is_fx else '<span style="background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🚀 CRYPTO TRADER</span>'
+    is_psx = cur_lane == "psx"
+    if is_psx:
+        lane_badge = '<span style="background:rgba(0,230,118,0.18); border:1px solid #00e676; color:#00e676; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🇵🇰 PSX EQUITIES</span>'
+    elif is_fx:
+        lane_badge = '<span style="background:rgba(255,215,0,0.18); border:1px solid #ffd700; color:#ffd700; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🪙 FOREX & METALS</span>'
+    else:
+        lane_badge = '<span style="background:rgba(0,229,255,0.18); border:1px solid #00e5ff; color:#00e5ff; font-size:0.65rem; font-weight:800; padding:2px 8px; border-radius:12px; margin-left:8px; letter-spacing:0.04em;">🚀 CRYPTO TRADER</span>'
 
     with st.container(border=True):
         h_left, h_center, h_right = st.columns([1.8, 1.3, 1.3], vertical_alignment="center")
@@ -854,11 +884,17 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
         with h_right:
             t_col_lane, t_col1, t_col2, t_col3, t_col4 = st.columns([1.1, 0.9, 0.8, 0.6, 0.5], vertical_alignment="center")
             with t_col_lane:
-                target_lane = "crypto" if is_fx else "forex_metals"
-                btn_lane_text = "🚀 Crypto" if is_fx else "🪙 FX & Metals"
-                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help="Switch between Crypto and Forex & Metals trading specialization", width="stretch"):
+                # Cycle between Crypto -> Forex/Metals -> PSX Equities -> Crypto
+                if cur_lane == "crypto":
+                    target_lane, btn_lane_text, target_sym = "forex_metals", "🪙 FX & Gold", "XAU/USD"
+                elif is_fx:
+                    target_lane, btn_lane_text, target_sym = "psx", "🇵🇰 PSX Stocks", "OGDC"
+                else:
+                    target_lane, btn_lane_text, target_sym = "crypto", "🚀 Crypto", "BTC/USDT"
+
+                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help=f"Switch trading specialization to {btn_lane_text}", width="stretch"):
                     st.session_state.trading_lane = target_lane
-                    st.session_state.selected_symbol = "XAU/USD" if target_lane == "forex_metals" else "BTC/USDT"
+                    st.session_state.selected_symbol = target_sym
                     st.rerun()
             with t_col1:
                 auto_val = st.toggle("⚡ Auto", value=auto_trade, key="header_master_auto_toggle", help="Toggle Autonomous Demo Execution")
@@ -981,7 +1017,23 @@ def render_macos_dock_navigation(current_selection: str = "📡 Live Signals & T
     if "Auto-Trading" in current_selection or "Demo Engine" in current_selection or "Demo" in current_selection:
         current_selection = "📊 Live Trades & Statistics"
 
-    if trading_lane in ["metals", "forex_metals"]:
+    if trading_lane == "psx":
+        tabs = [
+            "🪙 PSX Signals & Radar",
+            "🏛️ Board of High / KSE-100",
+            "📊 Live Trades & Statistics",
+            "🎓 Masterclass Academy",
+            "🛡️ Trade Risk & Side-Evaluation",
+            "🌊 Liquidity Heatmap",
+            "📜 Pine Script v5",
+            "📈 PSX Live Chart",
+            "📊 Backtest & Circuit Breakers",
+            "🧬 24/7 AI Strategy Lab",
+            "💥 Circuit Breaker Screener",
+            "💼 Portfolio & History",
+            "⚙️ System Logs"
+        ]
+    elif trading_lane in ["metals", "forex_metals"]:
         tabs = [
             "🪙 Forex & Metals Signals",
             "🏛️ Board of High",

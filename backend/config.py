@@ -67,3 +67,10 @@ DEFAULT_SLIPPAGE_PCT = 0.0005      # 0.05% slippage
 # Server Settings
 STREAMLIT_PORT = 8501
 STREAMLIT_HOST = "localhost"
+
+# Pakistan Stock Exchange (PSX) Configuration
+PSX_API_KEY = os.getenv("PSX_API_KEY", "")
+PSX_API_URL = os.getenv("PSX_API_URL", "https://dps.psx.com.pk")
+PSX_DATA_SOURCE = os.getenv("PSX_DATA_SOURCE", "auto")
+PSX_RATE_LIMIT_SEC = float(os.getenv("PSX_RATE_LIMIT_SEC", "0.10"))
+PSX_CACHE_TTL_SEC = float(os.getenv("PSX_CACHE_TTL_SEC", "15.0"))

@@ -32,6 +32,7 @@ def test_round_1_import_integrity():
         import backend.crypto_engine
         import backend.forex_engine
         import backend.forex_metal_engine
+        import backend.psx_engine
         import backend.market_data_hub
         import backend.market_structure
         import backend.liquidity_heatmap
@@ -368,6 +369,7 @@ def test_round_7_full_compilation():
             "backend/mt5_bot_generator.py",
             "backend/crypto_engine.py",
             "backend/forex_engine.py",
+            "backend/psx_engine.py",
             "backend/forex_metal_engine.py",
             "backend/market_data_hub.py",
             "backend/market_structure.py",
