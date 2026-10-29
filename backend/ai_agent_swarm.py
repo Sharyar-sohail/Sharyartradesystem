@@ -334,7 +334,7 @@ class MultiAgentSwarm:
         # -------------------------------------------------------------
         # 3. LIQUIDITY CLUSTER AGENT (Depth Modeling)
         # -------------------------------------------------------------
-        est_price = 4007.90 if "XAU" in curr_asset else (53.70 if "XAG" in curr_asset else (1.1205 if "EUR" in curr_asset else 68450.0))
+        est_price = 4007.90 if "XAU" in curr_asset else (53.70 if "XAG" in curr_asset else (1.1205 if "EUR" in curr_asset else 80000.0))
         try:
             from backend.market_data_hub import get_live_market_price
             p_found = get_live_market_price(curr_asset)

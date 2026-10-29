@@ -28,13 +28,34 @@ if _ROOT_DIR not in sys.path:
 
 from backend.db import log_event
 
-# All Major Forex Market Pairs and Precious Metals
-FOREX_MAJOR_PAIRS = [
-    "XAU/USD", "XAG/USD", "EUR/USD", "GBP/USD", "USD/JPY",
-    "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD", "EUR/GBP",
-    "EUR/JPY", "GBP/JPY"
+# Pure Forex Currency Pairs (Strictly Currency Pairs only - Zero Crypto, Zero Gold, Zero PSX)
+FOREX_CURRENCY_PAIRS = [
+    "EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD",
+    "USD/CAD", "NZD/USD", "EUR/GBP", "EUR/JPY", "GBP/JPY"
 ]
-MAJOR_FOREX_PAIRS = FOREX_MAJOR_PAIRS
+FOREX_MAJOR_PAIRS = FOREX_CURRENCY_PAIRS
+MAJOR_FOREX_PAIRS = FOREX_CURRENCY_PAIRS
+
+FOREX_WHITELIST = set(FOREX_CURRENCY_PAIRS) | {p.replace("/", "") for p in FOREX_CURRENCY_PAIRS}
+
+def is_forex_symbol(sym: str) -> bool:
+    """Strictly checks if a symbol belongs to the official Forex currency pairs whitelist."""
+    if not sym:
+        return False
+    clean = str(sym).strip().upper().replace("-", "/")
+    # Explicitly reject crypto, metals, and PSX
+    if any(c in clean for c in ["BTC", "ETH", "USDT", "SOL", "BNB", "XAU", "XAG", "GOLD", "SILVER"]):
+        return False
+    if clean in FOREX_WHITELIST or clean.replace("/", "") in FOREX_WHITELIST:
+        return True
+    return False
+
+def validate_forex_symbol(sym: str) -> str:
+    """Validates that a symbol is strictly a Forex currency pair; raises ValueError otherwise."""
+    clean = str(sym).strip().upper().replace("-", "/")
+    if not is_forex_symbol(clean):
+        raise ValueError(f"Symbol '{sym}' is not a valid Forex currency pair. Crypto, gold, and PSX instruments are strictly prohibited.")
+    return clean
 
 # Ticker mapping for Yahoo Finance REST fallbacks
 YAHOO_FX_MAP = {
@@ -199,19 +220,28 @@ class ForexEngine:
         """Returns 100% live real-time Silver spot price."""
         return self.get_live_price("XAG/USD")
 
-    def get_forex_price(self, symbol: str) -> float:
-        """Returns 100% live real-time Forex price for specified currency pair."""
+    def get_forex_price(self, symbol: str) -> Optional[float]:
+        """Returns 100% live real-time Forex price for specified currency pair strictly."""
+        if not is_forex_symbol(symbol):
+            return None
         return self.get_live_price(symbol)
 
-    def get_live_price(self, symbol: str) -> float:
+    def get_live_price(self, symbol: str) -> Optional[float]:
         """
         Fetches live price with 15-second TTL in-memory caching.
         Routes to:
         - Gold: Binance PAXG / Yahoo GC=F
         - Silver: Yahoo SI=F
         - Forex: Yahoo Direct REST -> Frankfurter ECB API
+        Strictly rejects crypto and PSX instruments (returns None).
         """
+        if not symbol:
+            return None
         clean_sym = symbol.strip().upper().replace(" ", "")
+        is_fx = is_forex_symbol(clean_sym)
+        is_metal = any(m in clean_sym for m in ["XAU", "XAG", "GOLD", "SILVER"])
+        if not is_fx and not is_metal:
+            return None
         now = time.time()
 
         # Check active live cache
@@ -271,10 +301,17 @@ class ForexEngine:
         except Exception:
             pass
 
-        # 5. Offline calibrated safety net fallback
-        fallback = SYNTHETIC_FX_PRICES.get(clean_sym, 1.0000)
-        self._price_cache[clean_sym] = (fallback, now + 10.0)
-        return fallback
+        # 5. Offline calibrated safety net fallback ONLY for whitelisted forex pairs
+        if clean_sym in SYNTHETIC_FX_PRICES:
+            fallback = SYNTHETIC_FX_PRICES[clean_sym]
+            self._price_cache[clean_sym] = (fallback, now + 10.0)
+            return fallback
+        return None
+
+    def get_forex_signals(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Strictly returns ONLY pure Forex currency pairs setups (zero gold, zero crypto, zero PSX)."""
+        all_sig = self.get_forex_and_metals_signals(pairs)
+        return [s for s in all_sig if is_forex_symbol(s.get("symbol", ""))]
 
     def get_forex_and_metals_signals(self, pairs: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -286,7 +323,12 @@ class ForexEngine:
         if pairs is None and self._cached_signals and now < self._cached_signals_exp:
             return self._cached_signals
 
-        target_pairs = pairs or FOREX_MAJOR_PAIRS
+        if pairs:
+            target_pairs = [p for p in pairs if is_forex_symbol(p) or any(m in p for m in ["XAU", "XAG", "GOLD", "SILVER"])]
+        else:
+            target_pairs = ["XAU/USD", "XAG/USD"] + list(FOREX_CURRENCY_PAIRS)
+        if not target_pairs:
+            target_pairs = ["XAU/USD", "XAG/USD"] + list(FOREX_CURRENCY_PAIRS)
         signals = []
 
         strategies_pool = [

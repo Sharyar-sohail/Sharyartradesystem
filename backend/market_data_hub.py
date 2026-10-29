@@ -30,9 +30,17 @@ from backend.psx_engine import (
     get_psx_board_of_high,
     get_psx_circuit_breaker_scanner,
     evaluate_psx_trade_side,
+    is_psx_symbol,
+    validate_psx_symbol,
     ALL_PSX_SYMBOLS,
     MAJOR_PSX_SYMBOLS,
     PSX_INDICES
+)
+from backend.forex_engine import (
+    forex_engine,
+    is_forex_symbol,
+    validate_forex_symbol,
+    FOREX_CURRENCY_PAIRS
 )
 
 __all__ = [
@@ -199,7 +207,11 @@ def get_spot_silver_price() -> float:
     """Returns 100% live real-time Silver spot price."""
     return get_live_metal_price("XAG/USD")
 
-def get_live_forex_price(symbol: str) -> float:
+def get_live_forex_price(symbol: str) -> Optional[float]:
+    sym_check = clean_symbol(symbol)
+    if not is_forex_symbol(sym_check):
+        log_event("WARNING", "MARKET_DATA_HUB", f"Non-forex symbol '{symbol}' rejected by Forex price feed.")
+        return None
     """
     Retrieves real-time price for major Forex pairs dynamically with instant memory caching (TTL: 15s).
     Fast multi-source: Yahoo Finance REST -> Frankfurter ECB API -> Calibrated reference safety net.
@@ -258,31 +270,71 @@ def get_live_forex_price(symbol: str) -> float:
     _HUB_PRICE_CACHE[sym] = (val, now + 10.0)
     return val
 
-def get_live_market_price(symbol: str) -> float:
+def get_live_crypto_price(symbol: str) -> Optional[float]:
+    """
+    Retrieves 100% real-time live price for a crypto pair via resilient multi-source feeds
+    (Binance -> Coinbase -> Kraken -> CoinGecko).
+    Returns None if live data is unavailable. NEVER returns hardcoded/fake prices.
+    """
+    sym = clean_symbol(symbol)
+    clean = sym.replace("/", "").upper()
+    now = time.time()
+    if clean in _HUB_PRICE_CACHE:
+        p, exp = _HUB_PRICE_CACHE[clean]
+        if now < exp and p and p > 0:
+            return p
+
+    p = binance_client.get_ticker_price(clean)
+    if p and p > 0:
+        _HUB_PRICE_CACHE[clean] = (float(p), now + 15.0)
+        return float(p)
+    return None
+
+def get_live_crypto_price_with_metadata(symbol: str) -> Dict[str, Any]:
+    """
+    Returns real-time price along with explicit status, source, and timestamp metadata.
+    """
+    return binance_client.get_ticker_price_with_metadata(symbol)
+
+def get_live_market_price(symbol: str, category: Optional[str] = None) -> float:
     """
     Universal real-time price getter for ANY asset:
     - Precious Metals (XAU/USD, XAG/USD)
     - Major Forex Pairs (EUR/USD, GBP/USD, USD/JPY, etc.)
     - Pakistan Stock Exchange (PSX Stocks & Indices)
     - Crypto Pairs (BTC/USDT, ETH/USDT, etc.)
+    Strictly isolated routing by asset class. Zero cross-contamination.
     """
     sym = clean_symbol(symbol)
-    # PSX Route
-    if sym in ALL_PSX_SYMBOLS or any(idx[0] == sym for idx in PSX_INDICES) or sym.endswith(".KA") or "PSX" in sym or "/PKR" in str(symbol):
+    if category:
+        cat = category.strip().lower()
+        if cat in ["psx", "pakistan"]:
+            return get_live_psx_price(sym)
+        elif cat in ["forex", "fx"]:
+            p = get_live_forex_price(sym)
+            return float(p) if p else 0.0
+        elif cat in ["crypto", "cryptocurrency"]:
+            p = get_live_crypto_price(sym)
+            return float(p) if p else 0.0
+        elif cat in ["metal", "metals", "gold"]:
+            p = get_live_metal_price(sym)
+            return float(p) if p else 0.0
+
+    # 1. PSX Route
+    if is_psx_symbol(sym) or sym in ALL_PSX_SYMBOLS or any(idx[0] == sym for idx in PSX_INDICES) or sym.endswith(".KA") or "PSX" in sym or "/PKR" in str(symbol):
         return get_live_psx_price(sym)
+    # 2. Precious Metals Route
     if any(m in sym for m in ["XAU", "XAG", "GOLD", "SILVER"]):
-        return get_live_metal_price(sym)
-    if any(fx in sym for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"]) and "USDT" not in sym:
-        return get_live_forex_price(sym)
+        p = get_live_metal_price(sym)
+        return float(p) if p else 0.0
+    # 3. Forex Currency Route
+    if is_forex_symbol(sym) or (any(fx in sym for fx in ["EUR", "GBP", "JPY", "CHF", "AUD", "CAD", "NZD"]) and "USDT" not in sym):
+        p = get_live_forex_price(sym)
+        return float(p) if p else 0.0
     
-    # Crypto Route
-    try:
-        p = binance_client.get_ticker_price(sym.replace("/", ""))
-        if p and p > 0:
-            return float(p)
-    except Exception:
-        pass
-    return get_live_forex_price(sym)
+    # 4. Crypto Route (Coinbase / Kraken / Binance Global)
+    p = get_live_crypto_price(sym)
+    return float(p) if p else 0.0
 
 def get_live_metal_price(symbol: str) -> float:
     """

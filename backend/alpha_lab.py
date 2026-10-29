@@ -79,7 +79,8 @@ ALPHA_ASSETS: Dict[str, Dict[str, Any]] = {
         "binance_symbol": "BTC/USDT",
         "unit": "BTC",
         "category": "Crypto Alpha",
-        "default_price": 68500.00,
+        # Real-time live price dynamic resolution
+        "default_price": None,
         "description": "Global Crypto Benchmark & Institutional Liquidity Core.",
         "best_strategy_name": "Proprietary AI Dynamic Consensus + Mega-Move Ignition (50%-500%+ Scope)",
         "historical_win_rate_pct": 94.6,
@@ -125,7 +126,7 @@ def get_alpha_asset_price(symbol: str) -> float:
         price = round(gold_p / 81.5, 3)
 
     if not price or price <= 0:
-        price = cfg["default_price"]
+        price = binance_client.get_ticker_price("BTCUSDT")
 
     _ALPHA_PRICE_CACHE[symbol] = price
     _ALPHA_PRICE_CACHE_TIME[symbol] = now

@@ -195,6 +195,29 @@ PSX_EQUITIES_REGISTRY: Dict[str, Dict[str, Any]] = {
 
 ALL_PSX_SYMBOLS = list(PSX_EQUITIES_REGISTRY.keys())
 MAJOR_PSX_SYMBOLS = ["OGDC", "PPL", "LUCK", "HBL", "MCB", "FFC", "ENGRO", "SYS", "TRG", "PSO", "UBL", "EFERT", "MEBL", "HUBC", "KEL"]
+ALL_PSX_EQUITY_SYMBOLS = set(PSX_EQUITIES_REGISTRY.keys())
+ALL_PSX_INDEX_SYMBOLS = {idx[0] for idx in PSX_INDICES}
+ALL_PSX_ALLOWED_SYMBOLS = ALL_PSX_EQUITY_SYMBOLS | ALL_PSX_INDEX_SYMBOLS
+
+def is_psx_symbol(sym: str) -> bool:
+    """Strictly checks if a symbol belongs to the official Pakistan Stock Exchange registry."""
+    if not sym:
+        return False
+    s = str(sym).strip().upper().replace("PSX:", "").replace(".KA", "").replace("KARACHI:", "")
+    if "/" in s:
+        s = s.split("/")[0]
+    s = s.strip()
+    if s in ALL_PSX_ALLOWED_SYMBOLS:
+        return True
+    s_norm = s.replace("-", "").replace(" ", "")
+    return s_norm in ALL_PSX_ALLOWED_SYMBOLS
+
+def validate_psx_symbol(sym: str) -> str:
+    """Validates that a symbol is strictly an official PSX instrument; raises ValueError otherwise."""
+    cleaned = clean_psx_symbol(sym)
+    if not is_psx_symbol(cleaned):
+        raise ValueError(f"Symbol '{sym}' is not a valid Pakistan Stock Exchange (PSX) instrument. Non-PSX instruments are strictly prohibited.")
+    return cleaned
 
 # In-Memory Cache Structures
 _PSX_PRICE_CACHE: Dict[str, Tuple[float, float, Dict[str, Any]]] = {}
@@ -219,7 +242,13 @@ def clean_psx_symbol(sym: str) -> str:
     s = s.replace("PSX:", "").replace(".KA", "").replace("KARACHI:", "")
     if "/" in s:
         s = s.split("/")[0]
-    return s.strip()
+    s = s.strip()
+    if s in ALL_PSX_ALLOWED_SYMBOLS:
+        return s
+    s_norm = s.replace("-", "").replace(" ", "")
+    if s_norm in ALL_PSX_ALLOWED_SYMBOLS:
+        return s_norm
+    return s
 
 def get_psx_indices() -> List[Dict[str, Any]]:
     """
@@ -291,9 +320,13 @@ def get_psx_indices() -> List[Dict[str, Any]]:
 def get_live_psx_price(symbol: str) -> float:
     """
     Retrieves the real-time live price (in PKR) for any PSX listed stock or index.
+    Enforces strict data layer validation: non-PSX symbols return 0.0.
     Multi-source hierarchy: In-Memory TTL Cache -> DPS Company Endpoint -> Direct Financial REST (.KA) -> Calibrated Baseline.
     """
     clean_sym = clean_psx_symbol(symbol)
+    if not is_psx_symbol(clean_sym):
+        log_event("WARNING", "PSX_ENGINE", f"Non-PSX symbol '{symbol}' rejected at PSX price data layer.")
+        return 0.0
     now = time.time()
 
     # Check cache
@@ -345,18 +378,22 @@ def get_live_psx_price(symbol: str) -> float:
     except Exception:
         pass
 
-    # 3. Registry baseline reference (Never fails)
+    # 3. Registry baseline reference (Strictly PSX only)
     reg_entry = PSX_EQUITIES_REGISTRY.get(clean_sym)
-    baseline = reg_entry["base_price"] if reg_entry else 100.00
+    if not reg_entry:
+        return 0.0
+    baseline = reg_entry["base_price"]
     _PSX_PRICE_CACHE[clean_sym] = (baseline, now + 5.0, {"price": baseline})
     return baseline
 
 def get_psx_company_quote(symbol: str) -> Dict[str, Any]:
     """
     Returns an institutional detailed quote card for any PSX company.
-    Includes sector, current price, change, day range, circuit breaker upper/lower locks, and volume.
+    Enforces strict data layer validation: non-PSX symbols raise ValueError.
     """
     clean_sym = clean_psx_symbol(symbol)
+    if not is_psx_symbol(clean_sym):
+        raise ValueError(f"Non-PSX symbol '{symbol}' rejected by PSX company quote service.")
     live_p = get_live_psx_price(clean_sym)
     reg_info = PSX_EQUITIES_REGISTRY.get(clean_sym, {
         "name": f"{clean_sym} Pakistan Limited",
@@ -499,11 +536,18 @@ def get_psx_signals(sample_symbols: Optional[List[str]] = None) -> List[Dict[str
     - Stop Loss is micro-tight (<1.5% to 2.5% max) placed strictly outside invalidation wicks
     - Take Profit targets 1:3.5 to 1:5.0 RR expansion towards Upper Lock / Key Liquidity
     """
-    symbols = sample_symbols or MAJOR_PSX_SYMBOLS
+    if sample_symbols:
+        symbols = [clean_psx_symbol(s) for s in sample_symbols if is_psx_symbol(clean_psx_symbol(s))]
+    else:
+        symbols = list(MAJOR_PSX_SYMBOLS)
+    if not symbols:
+        symbols = list(MAJOR_PSX_SYMBOLS)
     signals = []
 
     for sym in symbols:
         clean_sym = clean_psx_symbol(sym)
+        if not is_psx_symbol(clean_sym):
+            continue
         quote = get_psx_company_quote(clean_sym)
         curr_p = quote["price"]
         upper_lock = quote["upper_lock"]
