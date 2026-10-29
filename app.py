@@ -255,6 +255,32 @@ if "trading_lane" not in st.session_state:
     st.session_state.trading_lane = None
 
 # ---------------------------------------------------------------------
+# URL QUERY PARAMETER HANDLING FOR DIRECT MODULE & MOBILE INTEGRATION
+# ---------------------------------------------------------------------
+qp = getattr(st, "query_params", {})
+if "lane" in qp or "module" in qp:
+    raw_lane = (qp.get("lane") or qp.get("module") or "").strip().lower()
+    if raw_lane in ["crypto", "forex", "metals", "gold", "forex_metals", "psx"]:
+        if raw_lane == "crypto":
+            st.session_state.trading_lane = "crypto"
+            st.session_state.selected_symbol = "BTC/USDT"
+        elif raw_lane == "forex":
+            st.session_state.trading_lane = "forex"
+            st.session_state.selected_symbol = "EUR/USD"
+        elif raw_lane in ["gold", "metals", "forex_metals"]:
+            st.session_state.trading_lane = "forex_metals"
+            st.session_state.selected_symbol = "XAU/USD"
+        elif raw_lane == "psx":
+            st.session_state.trading_lane = "psx"
+            st.session_state.selected_symbol = "OGDC"
+        st.session_state.authenticated = True
+        st.session_state.welcome_modal_dismissed = True
+        st.session_state.in_academy_mode = False
+
+if "academy" in qp:
+    st.session_state.in_academy_mode = True
+
+# ---------------------------------------------------------------------
 # 1. ACADEMY ROUTING & SECURE DUAL STARTUP GATEWAY
 # ---------------------------------------------------------------------
 if st.session_state.get("in_academy_mode", False):
@@ -1692,7 +1718,7 @@ if trading_lane == "crypto":
 # =====================================================================
 # LANE 2: FOREX & METALS TRADER MODULES (Free API Major Pairs & Metals)
 # =====================================================================
-elif trading_lane in ["forex_metals", "metals"]:
+elif trading_lane in ["forex_metals", "metals", "forex"]:
 
     # -----------------------------------------------------------------
     # TAB: FOREX & METALS SIGNALS

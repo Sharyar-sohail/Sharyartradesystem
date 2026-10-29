@@ -122,10 +122,11 @@ class PaperTradingEngineTest {
 
     @Test
     fun testAutonomousAutoTradingEngine() {
-        PaperTradingEngine.setAutoTradeSettings(enabled = true, minConfidence = 90.0, maxPositions = 3)
+        PaperTradingEngine.resetAccount(10000.0)
+        PaperTradingEngine.setAutoTradeSettings(enabled = true, minConfidence = 98.0, maxPositions = 5)
 
-        // Signal with 94% confidence should trigger auto-trade
-        val highConfSignal = createDummySignal(symbol = "AVAX/USDT", conf = 94.0)
+        // Signal with 99% confidence should trigger auto-trade
+        val highConfSignal = createDummySignal(symbol = "AVAX/USDT", conf = 99.0)
         val opened = PaperTradingEngine.processSignalForAutoTrade(highConfSignal)
 
         assertTrue(opened)

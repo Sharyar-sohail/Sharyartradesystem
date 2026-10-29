@@ -33,6 +33,11 @@ import com.example.binanceterminal.engine.BackgroundMarketScanner
 import com.example.binanceterminal.engine.PaperTradingEngine
 import com.example.binanceterminal.model.TradeSignal
 import com.example.binanceterminal.theme.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.filled.Language
+import com.example.binanceterminal.ui.WebTerminalScreen
+import com.example.binanceterminal.ui.WebModule
 import com.example.binanceterminal.ui.AlphaLabScreen
 import com.example.binanceterminal.ui.MarketScreen
 import com.example.binanceterminal.ui.PaperTradingScreen
@@ -64,6 +69,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class NavigationTab(val label: String, val icon: ImageVector) {
+    WEB_TERMINAL("Web Hub", Icons.Default.Language),
     RADAR("AI Radar", Icons.Default.Radar),
     UNIVERSAL("Universal", Icons.Default.TrackChanges),
     PRO_CHART("Pro Chart", Icons.Default.Analytics),
@@ -76,7 +82,8 @@ enum class NavigationTab(val label: String, val icon: ImageVector) {
 
 @Composable
 fun MainAppScaffold() {
-    var selectedTab by remember { mutableStateOf(NavigationTab.RADAR) }
+    var selectedTab by remember { mutableStateOf(NavigationTab.WEB_TERMINAL) }
+    var activeWebModule by remember { mutableStateOf(WebModule.ALL) }
     var chartSignal by remember { mutableStateOf<TradeSignal?>(null) }
     var chartSymbol by remember { mutableStateOf("BTC/USDT") }
 
@@ -288,7 +295,24 @@ fun MainAppScaffold() {
                         }
                     }
 
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // Quick Web Hub Toggle Pill
+                        Surface(
+                            color = if (selectedTab == NavigationTab.WEB_TERMINAL) TerminalCyan.copy(alpha = 0.22f) else SurfaceCard,
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selectedTab == NavigationTab.WEB_TERMINAL) TerminalCyan else CardBorder),
+                            modifier = Modifier.clickable { selectedTab = NavigationTab.WEB_TERMINAL }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(Icons.Default.Language, contentDescription = "Web Engine", tint = TerminalCyan, modifier = Modifier.size(13.dp))
+                                Text("WEB", color = TerminalCyan, fontSize = 9.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            }
+                        }
+
                         // Key / Security Button
                         Surface(
                             color = if (isMasterAdmin) TerminalGreen.copy(alpha = 0.2f) else SurfaceCard,
@@ -341,7 +365,9 @@ fun MainAppScaffold() {
                     modifier = Modifier.wrapContentWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 4.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -386,6 +412,11 @@ fun MainAppScaffold() {
                 .background(BgDark)
         ) {
             when (selectedTab) {
+                NavigationTab.WEB_TERMINAL -> {
+                    WebTerminalScreen(
+                        initialModule = activeWebModule
+                    )
+                }
                 NavigationTab.RADAR -> {
                     RadarScreen(
                         onInspectChart = { sig ->
