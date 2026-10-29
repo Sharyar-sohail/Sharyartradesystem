@@ -821,7 +821,7 @@ def render_role_selection_welcome_screen():
 
     st.markdown(
         "<div style='text-align:center; margin-top:20px; font-size:0.82rem; color:#94a3b8;'>"
-        "💡 <i>Tip: You can seamlessly switch between Crypto and Forex & Metals lanes at any time via the top command bar.</i>"
+        "💡 <i>Tip: You can seamlessly switch between Crypto, Forex & Metals, and PSX Equities lanes at any time via the top command bar.</i>"
         "</div>",
         unsafe_allow_html=True
     )
@@ -884,17 +884,27 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
         with h_right:
             t_col_lane, t_col1, t_col2, t_col3, t_col4 = st.columns([1.1, 0.9, 0.8, 0.6, 0.5], vertical_alignment="center")
             with t_col_lane:
-                # Cycle between Crypto -> Forex/Metals -> PSX Equities -> Crypto
-                if cur_lane == "crypto":
-                    target_lane, btn_lane_text, target_sym = "forex_metals", "🪙 FX & Gold", "XAU/USD"
-                elif is_fx:
-                    target_lane, btn_lane_text, target_sym = "psx", "🇵🇰 PSX Stocks", "OGDC"
-                else:
-                    target_lane, btn_lane_text, target_sym = "crypto", "🚀 Crypto", "BTC/USDT"
-
-                if st.button(f"⇄ {btn_lane_text}", key="btn_hdr_switch_lane", help=f"Switch trading specialization to {btn_lane_text}", width="stretch"):
-                    st.session_state.trading_lane = target_lane
-                    st.session_state.selected_symbol = target_sym
+                lane_options = ["🚀 Crypto", "🪙 FX & Gold", "🇵🇰 PSX Equities"]
+                current_lane_idx = 0 if cur_lane == "crypto" else (1 if is_fx else 2)
+                selected_lane_opt = st.selectbox(
+                    "Trading Specialization",
+                    lane_options,
+                    index=current_lane_idx,
+                    key="hdr_lane_select_box",
+                    label_visibility="collapsed",
+                    help="Instantly switch between Crypto, Forex & Gold, and PSX Equities specialization"
+                )
+                if selected_lane_opt == "🚀 Crypto" and cur_lane != "crypto":
+                    st.session_state.trading_lane = "crypto"
+                    st.session_state.selected_symbol = "BTC/USDT"
+                    st.rerun()
+                elif selected_lane_opt == "🪙 FX & Gold" and not is_fx:
+                    st.session_state.trading_lane = "forex_metals"
+                    st.session_state.selected_symbol = "XAU/USD"
+                    st.rerun()
+                elif selected_lane_opt == "🇵🇰 PSX Equities" and not is_psx:
+                    st.session_state.trading_lane = "psx"
+                    st.session_state.selected_symbol = "OGDC"
                     st.rerun()
             with t_col1:
                 auto_val = st.toggle("⚡ Auto", value=auto_trade, key="header_master_auto_toggle", help="Toggle Autonomous Demo Execution")
@@ -958,10 +968,16 @@ def render_sharyar_system_header(runner, stats: Dict[str, Any], health: Dict[str
                             st.rerun()
 
                     st.divider()
+                    if st.button("🔀 Switch Market Lane (Welcome Screen)", width="stretch", key="btn_pop_switch_welcome"):
+                        st.session_state.trading_lane = None
+                        st.session_state.show_welcome_modal = True
+                        st.session_state.welcome_modal_dismissed = False
+                        st.rerun()
                     if st.button("🔒 Logout", width="stretch", key="btn_pop_logout"):
                         st.session_state.authenticated = False
                         st.session_state.is_master_admin = False
                         st.session_state.welcome_modal_dismissed = False
+                        st.session_state.trading_lane = None
                         st.rerun()
             with t_col4:
                 if st.button("🔄", help="Refresh Market Data", key="btn_hdr_refresh", width="stretch"):

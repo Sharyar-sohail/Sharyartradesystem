@@ -18,6 +18,7 @@ import requests
 import pandas as pd
 import numpy as np
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional, Tuple
 
 _CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -569,10 +570,8 @@ def get_psx_board_of_high() -> Dict[str, Any]:
     - Sector Heatmap Allocation
     """
     indices = get_psx_indices()
-    top_stocks = []
-
-    for sym in MAJOR_PSX_SYMBOLS:
-        top_stocks.append(get_psx_company_quote(sym))
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        top_stocks = list(ex.map(get_psx_company_quote, MAJOR_PSX_SYMBOLS))
 
     # Sort gainers, losers, volume
     gainers = sorted(top_stocks, key=lambda s: s["pct_change"], reverse=True)
@@ -609,8 +608,10 @@ def get_psx_circuit_breaker_scanner() -> List[Dict[str, Any]]:
     Scans the entire PSX universe for equities nearing or locked at Upper (+7.5%) or Lower (-7.5%) Circuit Breakers.
     """
     candidates = []
-    for sym in ALL_PSX_SYMBOLS:
-        q = get_psx_company_quote(sym)
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        quotes = list(ex.map(get_psx_company_quote, MAJOR_PSX_SYMBOLS))
+    for q in quotes:
+        sym = q["symbol"]
         p = q["price"]
         upper = q["upper_lock"]
         lower = q["lower_lock"]
