@@ -27,6 +27,11 @@ if _ROOT_DIR not in sys.path:
 
 from backend.db import log_event
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
 def _safe_float(val, default=0.0):
     try:
         if not val or str(val).strip() in ["N/A", "-", "", "None"]:
@@ -239,8 +244,7 @@ def get_psx_indices() -> List[Dict[str, Any]]:
 
         url = f"{PSX_API_URL.rstrip('/')}/indices"
         r = requests.get(url, headers=headers, timeout=4.0)
-        if r.status_code == 200 and "KSE100" in r.text:
-            from bs4 import BeautifulSoup
+        if BeautifulSoup and r.status_code == 200 and "KSE100" in r.text:
             soup = BeautifulSoup(r.text, "html.parser")
             rows = soup.find_all("tr")
             for row in rows:
@@ -328,8 +332,7 @@ def get_live_psx_price(symbol: str) -> float:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
         url = f"{PSX_API_URL.rstrip('/')}/company/{clean_sym}"
         r = requests.get(url, headers=headers, timeout=3.0)
-        if r.status_code == 200 and "quote__close" in r.text:
-            from bs4 import BeautifulSoup
+        if BeautifulSoup and r.status_code == 200 and "quote__close" in r.text:
             soup = BeautifulSoup(r.text, "html.parser")
             close_elem = soup.find(class_="quote__close")
             if close_elem:
